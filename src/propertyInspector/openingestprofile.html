@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover"
+		/>
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+		<title>Open Ingest Profile Property Inspector</title>
+		<link rel="stylesheet" href="../libs/css/sdpi.css" />
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+
+	<body>
+		<div class="sdpi-wrapper" style="visibility: hidden">
+			<form id="action-fields">
+				<div
+					type="radio"
+					class="sdpi-item"
+					style="margin-top: 2px"
+					title="Which server this profile's ingest buttons should show while it's open - overrides each button's own Target setting"
+				>
+					<div class="sdpi-item-label">Server</div>
+					<div class="sdpi-item-value" id="serverOptions"></div>
+				</div>
+				<div
+					class="sdpi-item"
+					title="Which Stream Deck device to switch to the destination profile"
+				>
+					<div class="sdpi-item-label">Device</div>
+					<select class="sdpi-item-value select" id="deviceOptions" name="device"></select>
+				</div>
+				<div
+					type="checkbox"
+					class="sdpi-item"
+					style="margin-left: 4px"
+					title="Overrides the online/offline filtering of every dynamic-position Ingest Status/Volume button on the destination profile while it's open"
+				>
+					<div class="sdpi-item-label empty"></div>
+					<input
+						class="sdpi-item-value"
+						id="includeOffline"
+						type="checkbox"
+						name="includeOffline"
+						value="true"
+					/>
+					<label for="includeOffline"><span></span>Include Offline Ingests</label>
+				</div>
+				<div class="sdpi-item" id="noServersNotice" style="display: none">
+					<div class="sdpi-item-label empty"></div>
+					<div class="sdpi-item-value" style="color: #e04c4c">
+						No server is flagged "IRLTK" yet - add one in the general configuration window first.
+					</div>
+				</div>
+			</form>
+		</div>
+		<script src="../libs/js/constants.js"></script>
+		<script src="../libs/js/prototypes.js"></script>
+		<script src="../libs/js/timers.js"></script>
+		<script src="../libs/js/utils.js"></script>
+		<script src="../libs/js/events.js"></script>
+		<script src="../libs/js/api.js"></script>
+		<script src="../libs/js/property-inspector.js"></script>
+		<script src="../libs/js/dynamic-styles.js"></script>
+		<script src="./openingestprofile.js" type="module"></script>
+	</body>
+</html>

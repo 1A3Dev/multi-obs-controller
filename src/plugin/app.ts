@@ -1,3 +1,4 @@
+import { resolveServers } from '../actions/globalSettings';
 import * as pluginActions from '../actions/index';
 import { DidReceiveGlobalSettingsData, GlobalSettings } from '../actions/types';
 import { sockets } from './sockets';
@@ -23,8 +24,17 @@ $SD.onConnected(({ appInfo }: any) => {
 $SD.onDidReceiveGlobalSettings(({ payload }: DidReceiveGlobalSettingsData<GlobalSettings>) => {
 	const { settings } = payload;
 	SDUtils.debugEnabled = settings.debug === 'enabled';
+	const servers = resolveServers(settings);
 	sockets.forEach((socket, idx) => {
-		const i = idx + 1;
-		socket.updateSettings(settings[`ip${i}`] ?? '', settings[`port${i}`] ?? '', settings[`pwd${i}`]);
+		const server = servers[idx];
+		socket.updateSettings(server?.ip ?? '', server?.port ?? '', server?.pwd, server?.secure === 'true');
 	});
+
+	if (!settings.servers?.length || settings.servers.some((server) => !server.id)) {
+		const migrated: GlobalSettings = { ...settings, servers };
+		Object.keys(migrated).forEach((key) => {
+			if (/^(ip|port|pwd)\d+$/.test(key)) delete migrated[key as keyof GlobalSettings];
+		});
+		$SD.setGlobalSettings(migrated);
+	}
 });

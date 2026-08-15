@@ -5,7 +5,7 @@ import { StateEnum } from '../StateEnum';
 import { getScenesLists, getSceneItemsList, getGroupsLists, getGroupSceneItemsList } from '../lists';
 import { SocketSettings, BatchRequestPayload, SendToPluginData } from '../types';
 
-type ActionSettings = { sceneName: string, sourceName: string }
+type ActionSettings = { sceneName: string, sourceName: string, forceToggle?: 'true' }
 
 export class ToggleSourceAction extends AbstractStatefulRequestAction<ActionSettings, 'SceneItemEnableStateChanged'> {
 	constructor() {
@@ -40,7 +40,10 @@ export class ToggleSourceAction extends AbstractStatefulRequestAction<ActionSett
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>, state: StateEnum, desiredState?: number | undefined): BatchRequestPayload {
-		const { sceneName, sourceName } = settings;
+		const { sceneName, sourceName, forceToggle } = settings;
+		const sceneItemEnabled = forceToggle === 'true' || desiredState === undefined
+			? state !== StateEnum.Active
+			: !desiredState;
 		return {
 			requests: [
 				{
@@ -52,7 +55,7 @@ export class ToggleSourceAction extends AbstractStatefulRequestAction<ActionSett
 					requestType: 'SetSceneItemEnabled',
 					requestData: {
 						sceneName: sceneName,
-						sceneItemEnabled: desiredState !== undefined ? !desiredState : state !== StateEnum.Active,
+						sceneItemEnabled: sceneItemEnabled,
 					},
 					inputVariables: { sceneItemId: 'sceneItemIdVariable' },
 				},

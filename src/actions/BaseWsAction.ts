@@ -1,10 +1,38 @@
 import { OBSEventTypes } from 'obs-websocket-js';
 import pRetry from 'p-retry';
 import { sockets } from '../plugin/sockets';
-import { SDUtils, SVGUtils } from '../plugin/utils';
+import { SDUtils } from '../plugin/utils';
 import { StateEnum } from './StateEnum';
-import { globalSettings } from './globalSettings';
+import { globalSettings, resolveServers, resolveTargetIds, resolveTargetIndices } from './globalSettings';
+import { getIngestContextOverride, getIngests, getLastKnownIngestNames, sortIngests } from './irltkIngests';
+import { getLastKnownScenes, getScenesLists } from './lists';
 import { ContextData, SocketSettings, ConstructorParams, DidReceiveSettingsData, KeyDownData, KeyUpData, PartiallyRequired, PersistentSettings, SendToPluginData, WillAppearData, WillDisappearData } from './types';
+
+/** Wires up the "reconnect" and "getGlobalLists" PI events shared by every action's General Configuration window, even ones (like Previous Profile) that don't otherwise talk to OBS */
+export function registerGlobalListsHandler(action: InstanceType<typeof Action>): void {
+	action.onSendToPlugin(async ({ context, action: actionUUID, payload }: SendToPluginData<{ event: string }>) => {
+		if (payload.event === 'reconnect') {
+			sockets.forEach(socket => { socket.tryReconnect(); });
+		}
+		else if (payload.event === 'getGlobalLists') {
+			const liveIngestsLists = sockets.map((_, socketIdx) => sortIngests([...getIngests(socketIdx).values()], socketIdx));
+			const liveScenesLists = await getScenesLists();
+			const ingestsLists = liveIngestsLists.map((live, socketIdx) => {
+				if (live.length) return live;
+				return [...getLastKnownIngestNames(socketIdx)]
+				.filter(([obs_source_name]) => !!globalSettings[`ingestAlias__${obs_source_name}`])
+				.map(([obs_source_name, name]) => ({ obs_source_name, name }));
+			});
+			const scenesLists = liveScenesLists.map((scenes, socketIdx) => {
+				if (scenes.length) return scenes;
+				return getLastKnownScenes(socketIdx).filter(({ sceneName }) => !!globalSettings[`sceneAlias__${sceneName}`]);
+			});
+			const connectedIngestSourceNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveIngestsLists[socketIdx].map(i => i.obs_source_name) : []);
+			const connectedSceneNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveScenesLists[socketIdx].map(s => s.sceneName) : []);
+			$SD.sendToPropertyInspector(context, { event: 'GlobalListsLoaded', ingestsLists, scenesLists, connectedIngestSourceNames, connectedSceneNames }, actionUUID);
+		}
+	});
+}
 
 /** Base class for all actions used to communicate with OBS WS */
 export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> extends Action {
@@ -14,6 +42,8 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	private _titleParam: string | undefined;	// to-do: this type could be restricted more, something like keyof T?
 	private _statesColors = { active: '#517a96', intermediate: '#de902a', inactive: '#3d5b70' };
 	private _hideTargetIndicators = false;
+	private _irltkCompat: 'only' | 'exclude' | undefined;
+	private _allowDynamicTarget = false;
 	protected _showSuccess = true;
 
 	private _pressCache = new Map<string, NodeJS.Timeout>(); // <context, timeoutRef>
@@ -26,6 +56,8 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this._titleParam = params?.titleParam;
 		this._statesColors = { ...this._statesColors, ...params?.statesColors };
 		this._hideTargetIndicators = !!params?.hideTargetIndicators;
+		this._irltkCompat = params?.irltkCompat;
+		this._allowDynamicTarget = !!params?.allowDynamicTarget;
 
 		// Load default image
 		this._getDefaultKeyImage().then(img => this._defaultKeyImg = img).catch(() => console.warn(`Default key image for ${this.UUID} couldn't be loaded`));
@@ -62,9 +94,12 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this.onWillAppear(async (evtData: WillAppearData<any>) => {
 			const { context, payload } = evtData;
 			const { settings, isInMultiAction } = payload;
+			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
-				targetObs: this.getTarget(settings),
+				targets,
+				displayIdx: targets.length ? Math.min(...targets) - 1 : 0,
 				isInMultiAction: !!isInMultiAction,
 				settings: settingsArray,
 				advancedSettings: settings.advanced,
@@ -87,9 +122,12 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this.onDidReceiveSettings(async (evtData: DidReceiveSettingsData<any>) => {
 			const { context, payload } = evtData;
 			const { settings, isInMultiAction } = payload;
+			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
-				targetObs: this.getTarget(settings),
+				targets,
+				displayIdx: targets.length ? Math.min(...targets) - 1 : 0,
 				isInMultiAction: !!isInMultiAction,
 				settings: settingsArray,
 				advancedSettings: settings.advanced,
@@ -107,7 +145,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		// -- Sockets connected/disconnected
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('Identified', async () => {
-				if (this.onSocketConnected) {
+				if (this.onSocketConnected && this._isSocketEligible(socketIdx)) {
 					await pRetry(() => this.onSocketConnected!(socketIdx), {
 						retries: 5,
 						minTimeout: 100,
@@ -140,6 +178,9 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		// Update images on global settings updated
 		$SD.onDidReceiveGlobalSettings(() => {
 			this.updateImages();
+			for (const context of this._contexts.keys()) {
+				$SD.getSettings(context);
+			}
 		});
 
 		// When PI is loaded and ready, extra optional logic per action
@@ -148,10 +189,8 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 				await this.onPropertyInspectorReady({ context, action })
 				.catch(() => SDUtils.logError(`[${this._actionId}] Error executing custom onPropertyInspectorReady()`));
 			}
-			else if (payload.event === 'reconnect') {
-				sockets.forEach(socket => { socket.tryReconnect(); });
-			}
 		});
+		registerGlobalListsHandler(this);
 
 		// Attach status event listener if defined
 		let statusEvent = params?.statusEvent;
@@ -198,23 +237,35 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	// -- General helpers
 	getCommonSettings(settings: PersistentSettings<T>) {
 		settings = settings ?? {};
+		if (this._allowDynamicTarget && settings.common?.dynamicTarget === 'true') {
+			const overrideTarget = getIngestContextOverride().target;
+			return { targets: overrideTarget !== undefined ? [overrideTarget] : [], indivParams: false };
+		}
+		const overrideTarget = this._irltkCompat === 'only' ? getIngestContextOverride().target : undefined;
 		return {
-			target: parseInt(settings.common?.target || globalSettings.defaultTarget || '0'),
+			targets: overrideTarget !== undefined ? [overrideTarget] : resolveTargetIndices(settings.common?.target || globalSettings.defaultTarget, resolveServers(globalSettings)),
 			indivParams: !!settings.common?.indivParams,
 		};
 	}
 
-	getTarget(settings: PersistentSettings<T>): number {
-		return this.getCommonSettings(settings).target;
+	getTargets(settings: PersistentSettings<T>): number[] {
+		return this.getCommonSettings(settings).targets;
 	}
 
 	getSettingsArray(settings: PersistentSettings<T>): (SocketSettings<T> | null)[] {
 		settings = settings ?? {};
-		const { target, indivParams } = this.getCommonSettings(settings);
+		const { targets, indivParams } = this.getCommonSettings(settings);
+		const servers = resolveServers(globalSettings);
 		const settingsArray = [];
 		for (let i = 0; i < sockets.length; i++) {
-			if (target === 0 || target === i + 1) {
-				settingsArray.push(settings[`params${(target === 0 && !indivParams) ? 1 : i + 1}`] ?? {});
+			if (targets.includes(i + 1) && this._isSocketEligible(i)) {
+				if (!indivParams) {
+					settingsArray.push(settings.params_shared ?? settings.params1 ?? {});
+				}
+				else {
+					const id = servers[i]?.id;
+					settingsArray.push((id ? settings[`params_${id}`] : undefined) ?? settings[`params${i + 1}`] ?? {});
+				}
 			}
 			else {
 				settingsArray.push(null);
@@ -222,7 +273,59 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		}
 		return settingsArray;
 	}
+
+	private _migrateLegacySettings(context: string, settings: PersistentSettings<T>): void {
+		const rawTarget = settings?.common?.target;
+		if (rawTarget === undefined) return;
+		const servers = resolveServers(globalSettings);
+		const alreadyIds = Array.isArray(rawTarget) && rawTarget.every((t) => servers.some((server) => server.id === t));
+		const idTargets = resolveTargetIds(rawTarget, servers);
+		if (!idTargets.length) return;
+
+		const settingsRecord = settings as Record<string, unknown>;
+		const paramsUpdates: Record<string, unknown> = {};
+		idTargets.forEach((id) => {
+			const index = servers.findIndex((server) => server.id === id) + 1;
+			const idKey = `params_${id}` as const;
+			const legacyKey = `params${index}` as const;
+			if (settingsRecord[idKey] === undefined && settingsRecord[legacyKey] !== undefined) {
+				paramsUpdates[idKey] = settingsRecord[legacyKey];
+			}
+		});
+
+		if (!settings.common?.indivParams && idTargets.length === 1 && settingsRecord.params_shared === undefined && settingsRecord.params1 === undefined) {
+			const idKey = `params_${idTargets[0]}`;
+			const soleParams = paramsUpdates[idKey] ?? settingsRecord[idKey];
+			if (soleParams !== undefined) {
+				paramsUpdates.params_shared = soleParams;
+			}
+		}
+
+		if (alreadyIds && Object.keys(paramsUpdates).length === 0) return;
+		$SD.setSettings(context, { ...settings, common: { ...settings.common, target: idTargets }, ...paramsUpdates });
+	}
+
+	private _isSocketEligible(socketIdx: number): boolean {
+		if (!this._irltkCompat) return true;
+		const isIrltk = resolveServers(globalSettings)[socketIdx]?.irltk === 'true';
+		return this._irltkCompat === 'only' ? isIrltk : !isIrltk;
+	}
 	// --
+
+	protected _warnIfDisconnected(context: string, settings: (SocketSettings<T> | null)[]): void {
+		if (globalSettings.feedback === 'hide') return;
+		if (settings.some((socketSettings, socketIdx) => socketSettings && !sockets[socketIdx].isConnected)) {
+			$SD.showAlert(context);
+		}
+	}
+
+	protected _dimFeedback(feedback: Record<string, string | number | Record<string, unknown>>, socketIdx: number): Record<string, Record<string, unknown>> {
+		const opacity = sockets[socketIdx]?.isConnected ? 1 : 0.4;
+		return Object.fromEntries(Object.entries(feedback).map(([key, value]) => [
+			key,
+			typeof value === 'object' ? { ...value, opacity } : { value, opacity },
+		]));
+	}
 
 	/**
 	 * Update key title with the corresponding settings param string, depending on configured target
@@ -263,10 +366,9 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		return this.fetchState ? this.fetchState(socketSettings, socketIdx) : StateEnum.None;
 	}
 
-	// Update SD state - active (0) only if all target states are active
 	protected _updateSDState(context: string, contextData: ContextData<unknown>) {
-		const { targetObs, states } = contextData;
-		const sdState = states.filter((_, i) => targetObs === 0 || targetObs - 1 === i).every(state => state === StateEnum.Active) ? 0 : 1;
+		const { targets, states } = contextData;
+		const sdState = states.filter((_, i) => targets.includes(i + 1)).every(state => state === StateEnum.Active) ? 0 : 1;
 		$SD.setState(context, sdState);
 	}
 	// --
@@ -329,7 +431,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 
 	private async _generateKeyImage(context: string) {
 		if (!this._contexts.has(context)) return;
-		const { states, targetObs, advancedSettings } = this._contexts.get(context)!;
+		const { states, targets, advancedSettings } = this._contexts.get(context)!;
 
 		// State rectangles
 		let bgLayer = '', fgLayer = '';
@@ -338,29 +440,26 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		const intermediateColor = this._getBgColor(context, 'Intermediate');
 
 		if (states) {
-			if (targetObs !== 0) {
-				if (states[targetObs - 1] === StateEnum.Unavailable) {
-					fgLayer += SVGUtils.createVPattern();
-				}
-				else {
-					bgLayer += `<rect x="0" y="0" width="144" height="144" fill="${states[targetObs - 1] === StateEnum.Inactive ? inactiveColor : states[targetObs - 1] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
-					if (states[targetObs - 1] === StateEnum.Inactive) {
-						fgLayer += '<rect x="0" y="0" width="144" height="144" fill="black" fill-opacity="0.5"/>';
-					}
+			if (targets.length === 1) {
+				const idx = targets[0] - 1;
+				const isDimmed = states[idx] === StateEnum.Inactive || states[idx] === StateEnum.Unavailable;
+				bgLayer += `<rect x="0" y="0" width="144" height="144" fill="${isDimmed ? inactiveColor : states[idx] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
+				if (isDimmed) {
+					fgLayer += '<rect x="0" y="0" width="144" height="144" fill="black" fill-opacity="0.5"/>';
 				}
 			}
 			else {
-				for (let i = 0; i < states.length; i++) {
-					if (states[i] === StateEnum.Unavailable) {
-						fgLayer += SVGUtils.createVPattern(i / 2, (i + 1) / 2);
+				const n = targets.length;
+				targets.forEach((pos, sliceIdx) => {
+					const idx = pos - 1;
+					const x = 144 * sliceIdx / n;
+					const width = 144 * (sliceIdx + 1) / n - x;
+					const isDimmed = states[idx] === StateEnum.Inactive || states[idx] === StateEnum.Unavailable;
+					bgLayer += `<rect x="${x}" y="0" width="${width}" height="144" fill="${isDimmed ? inactiveColor : states[idx] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
+					if (isDimmed) {
+						fgLayer += `<rect x="${x}" y="0" width="${width}"  height="144" fill="black" fill-opacity="0.5"/>`;
 					}
-					else {
-						bgLayer += `<rect x="${144 * i / 2}" y="0" width="${144 * (i + 1) / 2}" height="144" fill="${states[i] === StateEnum.Inactive ? inactiveColor : states[i] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
-						if (states[i] === StateEnum.Inactive) {
-							fgLayer += `<rect x="${144 * i / 2}" y="0" width="${144 * (i + 1) / 2}"  height="144" fill="black" fill-opacity="0.5"/>`;
-						}
-					}
-				}
+				});
 			}
 		}
 
@@ -371,11 +470,15 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 			const pos = globalSettings.targetNumbers ?? 'top';
 
 			const yPos = pos === 'top' ? 28 : pos === 'middle' ? 144 / 2 + 10 : 144 - 10;
-			if (targetObs === 0 || targetObs === 1) {
-				targetsText += `<text x="${0 + 10}" y="${yPos}" text-anchor="start" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">1</text>`;
+			if (targets.length > 1 && states) {
+				const n = targets.length;
+				targets.forEach((serverPos, sliceIdx) => {
+					const xPos = 144 * (sliceIdx + 0.5) / n;
+					targetsText += `<text x="${xPos}" y="${yPos}" text-anchor="middle" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">${serverPos}</text>`;
+				});
 			}
-			if (targetObs === 0 || targetObs === 2) {
-				targetsText += `<text x="${144 - 10}" y="${yPos}" text-anchor="end" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">2</text>`;
+			else if (targets.length === 1) {
+				targetsText += `<text x="${0 + 10}" y="${yPos}" text-anchor="start" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">${targets[0]}</text>`;
 			}
 		}
 

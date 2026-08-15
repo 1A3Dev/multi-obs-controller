@@ -5,7 +5,7 @@ type ActionSettings = { deviceName: string, sleepMs: string }
 
 export class RefreshCaptureDeviceAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.refreshcapturedevice', { titleParam: 'deviceName' });
+		super('dev.theca11.multiobs.refreshcapturedevice', { titleParam: 'deviceName', irltkCompat: 'exclude' });
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): BatchRequestPayload {

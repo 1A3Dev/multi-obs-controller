@@ -1,0 +1,43 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "volumeDial",
+	"items": [
+		{
+			"key": "status",
+			"type": "text",
+			"rect": [0, 4, 200, 14],
+			"font": { "size": 11, "weight": 700 },
+			"alignment": "center",
+			"color": "#e5473b",
+			"value": ""
+		},
+		{
+			"key": "title",
+			"type": "text",
+			"rect": [4, 18, 192, 20],
+			"font": { "size": 14, "weight": 600 },
+			"alignment": "center",
+			"text-overflow": "ellipsis",
+			"color": "#EFEFEF",
+			"value": ""
+		},
+		{
+			"key": "value",
+			"type": "text",
+			"rect": [4, 38, 192, 34],
+			"font": { "size": 24, "weight": 600 },
+			"alignment": "center",
+			"color": "#EFEFEF",
+			"value": ""
+		},
+		{
+			"key": "indicator",
+			"type": "bar",
+			"rect": [8, 74, 184, 12],
+			"subtype": 4,
+			"border_w": 0,
+			"bar_fill_c": "#EFEFEF",
+			"value": 0
+		}
+	]
+}

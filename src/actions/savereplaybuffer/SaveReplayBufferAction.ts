@@ -9,7 +9,7 @@ export class SaveReplayBufferAction extends AbstractStatefulRequestAction<Action
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.savereplaybuffer', { statusEvent: 'ReplayBufferStateChanged' });
+		super('dev.theca11.multiobs.savereplaybuffer', { statusEvent: 'ReplayBufferStateChanged', irltkCompat: 'exclude' });
 		this._showSuccess = true; // force showing success icon
 
 		sockets.forEach((socket, socketIdx) => {
