@@ -1,9 +1,12 @@
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.setprofile', ({ payload }) => {
+import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
+
+$PI.onSendToPropertyInspector('dev.theca11.multiobs.setprofile', replayOnTargetChange(['ProfileListLoaded'], ({ payload }) => {
 	const { event, profilesLists } = payload;
 
 	if (event === 'ProfileListLoaded') {
-		document.querySelectorAll('datalist').forEach((el, idx) => {
-			const options = [...profilesLists[idx]].reverse().map((profile) => {
+		document.querySelectorAll('datalist').forEach((el) => {
+			const profiles = mergeListsByKey(profilesLists, socketIndicesOf(el));
+			const options = [...profiles].reverse().map((profile) => {
 				const option = document.createElement('option');
 				option.value = profile;
 				option.textContent = profile;
@@ -12,4 +15,4 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.setprofile', ({ payload }) =
 			el.replaceChildren(...options);
 		});
 	}
-});
+}));

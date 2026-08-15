@@ -1,9 +1,12 @@
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.toggleinputmute', ({ payload }) => {
+import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
+
+$PI.onSendToPropertyInspector('dev.theca11.multiobs.toggleinputmute', replayOnTargetChange(['InputListLoaded'], ({ payload }) => {
 	const { event, inputsLists } = payload;
 
 	if (event === 'InputListLoaded') {
-		document.querySelectorAll('datalist').forEach((el, idx) => {
-			const options = [...inputsLists[idx]].reverse().map((input) => {
+		document.querySelectorAll('datalist').forEach((el) => {
+			const inputs = mergeListsByKey(inputsLists, socketIndicesOf(el), 'inputName');
+			const options = [...inputs].reverse().map((input) => {
 				const option = document.createElement('option');
 				option.value = input.inputName;
 				option.textContent = input.inputName;
@@ -12,4 +15,4 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.toggleinputmute', ({ payload
 			el.replaceChildren(...options);
 		});
 	}
-});
+}));

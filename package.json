@@ -6,7 +6,7 @@
 		"prepare-dev": "symlink-dir ./build/dev.theca11.multiobs.sdPlugin %APPDATA%/Elgato/StreamDeck/Plugins/dev.theca11.multiobs.sdPlugin",
 		"dev": "webpack --watch --mode=development",
 		"build": "webpack --mode=production",
-		"package": "cd ./dist && npx trash dev.theca11.multiobs.streamDeckPlugin && DistributionTool.exe -b -i ../build/dev.theca11.multiobs.sdPlugin -o .",
+		"package": "cd ./dist && npx trash dev.theca11.multiobs.streamDeckPlugin && ./DistributionTool.exe -b -i ../build/dev.theca11.multiobs.sdPlugin -o .",
 		"release": "npm run package",
 		"lint": "eslint .",
 		"lint-fix": "eslint --fix ."

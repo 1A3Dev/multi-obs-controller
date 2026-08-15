@@ -108,6 +108,21 @@ input[type="radio"]:checked + label span, input[type="checkbox"]:checked + label
 	margin: 0px;
 }
 
+#targetOptions,
+#defaultTargetOptions,
+#serverOptions {
+	flex-wrap: wrap;
+	row-gap: 4px;
+	min-width: 0;
+}
+
+#targetOptions > label,
+#defaultTargetOptions > label,
+#serverOptions > label {
+	max-width: 100%;
+	overflow-wrap: anywhere;
+}
+
 .sdpi-item-value > textarea {
 	min-width: auto;
 	width: -webkit-fill-available;

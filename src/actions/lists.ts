@@ -1,4 +1,41 @@
 import { sockets } from '../plugin/sockets';
+import { globalSettings, resolveServers } from './globalSettings';
+
+const lastKnownScenes: { sceneName: string }[][] = new Array(sockets.length).fill(null).map(() => []);
+const persistTimers: (ReturnType<typeof setTimeout> | undefined)[] = new Array(sockets.length).fill(undefined);
+
+function persistLastKnownScenes(socketIdx: number, scenes: { sceneName: string }[]) {
+	clearTimeout(persistTimers[socketIdx]);
+	persistTimers[socketIdx] = setTimeout(() => {
+		const servers = resolveServers(globalSettings);
+		const server = servers[socketIdx];
+		if (!server?.id) return;
+		const sceneNames = scenes.map(s => s.sceneName);
+		if (JSON.stringify(server.lastKnownScenes ?? []) === JSON.stringify(sceneNames)) return;
+		const updatedServers = servers.map(s => s.id === server.id ? { ...s, lastKnownScenes: sceneNames } : s);
+		$SD.setGlobalSettings({ ...globalSettings, servers: updatedServers });
+	}, 1000);
+}
+
+sockets.forEach((socket, socketIdx) => {
+	socket.on('SceneListChanged', ({ scenes }) => {
+		lastKnownScenes[socketIdx] = scenes as { sceneName: string }[];
+		persistLastKnownScenes(socketIdx, lastKnownScenes[socketIdx]);
+	});
+	socket.on('Identified', async () => {
+		const { scenes } = await socket.call('GetSceneList').catch(() => ({ scenes: undefined }));
+		if (scenes) {
+			lastKnownScenes[socketIdx] = scenes as { sceneName: string }[];
+			persistLastKnownScenes(socketIdx, lastKnownScenes[socketIdx]);
+		}
+	});
+});
+
+export function getLastKnownScenes(socketIdx: number): { sceneName: string }[] {
+	if (lastKnownScenes[socketIdx]?.length) return lastKnownScenes[socketIdx];
+	const server = resolveServers(globalSettings)[socketIdx];
+	return (server?.lastKnownScenes ?? []).map(sceneName => ({ sceneName }));
+}
 
 /**
  * Get a list of all collections in all OBS instances
@@ -74,6 +111,13 @@ export async function getGroupSceneItemsList(socketIdx: number, groupName: strin
 	catch {
 		return [];
 	}
+}
+
+export async function getTransitionsLists() {
+	const results = await Promise.allSettled(
+		sockets.map(socket => socket.isConnected ? socket.call('GetSceneTransitionList') : Promise.reject()),
+	);
+	return results.map(result => result.status === 'fulfilled' ? result.value.transitions : []);
 }
 
 /**

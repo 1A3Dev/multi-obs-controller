@@ -1,3 +1,78 @@
+/**
+ * @returns {number[]}
+ */
+export function getSelectedSocketIndices() {
+	const checkedIds = Array.from(document.querySelectorAll('input[name="target"]:checked')).map((el) => el.value);
+	return checkedIds
+	.map((id) => document.querySelector(`.tab-container[data-id="${id}"]`)?.dataset.socketIdx)
+	.filter((socketIdx) => socketIdx !== undefined)
+	.map(Number);
+}
+
+/**
+ * @param {Element} el
+ * @returns {number[]}
+ */
+export function socketIndicesOf(el) {
+	const { socketIdx } = el.closest('.tab-container').dataset;
+	return socketIdx !== undefined ? [Number(socketIdx)] : getSelectedSocketIndices();
+}
+
+/**
+ * @param {() => void} callback
+ */
+export function onTargetSelectionChange(callback) {
+	document.querySelectorAll('input[name="target"]').forEach((el) => el.addEventListener('change', callback));
+}
+
+/**
+ * Wraps an onSendToPropertyInspector handler so the last payload of each listed event is handled again when the
+ * target selection changes, re-rendering lists merged from the selected servers
+ * @param {string[]} events
+ * @param {(data: { payload: any }) => void} handler
+ * @returns {(data: { payload: any }) => void}
+ */
+export function replayOnTargetChange(events, handler) {
+	const lastPayloads = new Map();
+	onTargetSelectionChange(() => lastPayloads.forEach((payload) => handler({ payload })));
+	return (data) => {
+		if (events.includes(data.payload.event)) lastPayloads.set(data.payload.event, data.payload);
+		handler(data);
+	};
+}
+
+/**
+ * @param {unknown[][]} lists
+ * @param {number[]} socketIndices
+ * @param {string} [key]
+ * @returns {unknown[]}
+ */
+export function mergeListsByKey(lists, socketIndices, key) {
+	const seen = new Set();
+	const merged = [];
+	socketIndices.forEach((idx) => {
+		(lists[idx] ?? []).forEach((item) => {
+			const id = key ? item[key] : item;
+			if (seen.has(id)) return;
+			seen.add(id);
+			merged.push(item);
+		});
+	});
+	return merged;
+}
+
+/**
+ * @param {Element} tabContainer
+ * @param {*} settings
+ * @returns {*}
+ */
+export function getTabParams(tabContainer, settings) {
+	const { id, index } = tabContainer.dataset;
+	return id
+		? (settings?.[`params_${id}`] ?? settings?.[`params${index}`] ?? {})
+		: (settings?.params_shared ?? settings?.params1 ?? {});
+}
+
 export class FormUtils {
 	/**
 	 * Returns the value from a form using the form controls name property

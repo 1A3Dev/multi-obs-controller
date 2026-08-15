@@ -63,39 +63,156 @@
 				margin-left: 10px;
 			}
 
-			.item {
-				display: grid;
-				grid-template-columns: min-content auto;
-				align-items: center;
-				grid-column-gap: 4px;
-			}
-
-			.item .label {
-				width: 55px;
-				text-align: right;
-			}
-
-			.item .label::after {
-				content: ': ';
-			}
-
-			.item .input {
-				min-height: 26px;
-				padding: 0 4px;
-				min-width: 0px;
-			}
-
 			.input {
 				margin-left: 4px;
 			}
 
-			.obs-settings {
-				display: grid;
-				grid-template-columns: 175px 175px;
-				grid-column-gap: 50px;
-				justify-content: center;
+			.server-row {
+				background: #2d2d2d;
+				border-radius: 6px;
+				padding: 6px 8px;
+				margin-bottom: 6px;
+				box-sizing: border-box;
+			}
+
+			.server-row-header {
+				display: flex;
 				align-items: center;
-				margin-bottom: 12px;
+				gap: 6px;
+				margin-bottom: 4px;
+			}
+
+			.server-row.collapsed .server-row-header {
+				margin-bottom: 0;
+			}
+
+			.server-row-header input[name="serverName"] {
+				flex: 1 0 0;
+				min-width: 0;
+				font-weight: 700;
+			}
+
+			.server-row-header .toggle {
+				flex: 0 0 18px;
+				min-height: 26px;
+				padding: 0;
+				border: none;
+				background: transparent;
+				color: #9a9a9a;
+				cursor: pointer;
+			}
+
+			.server-row-header .toggle::before {
+				content: '⯆';
+			}
+
+			.server-row.collapsed .toggle::before {
+				content: '⯈';
+			}
+
+			.server-row-summary {
+				display: none;
+				flex: 0 1 auto;
+				max-width: 45%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 8pt;
+				opacity: 0.6;
+			}
+
+			.server-row.collapsed .server-row-summary {
+				display: block;
+			}
+
+			.server-row.collapsed .server-row-body {
+				display: none;
+			}
+
+			.server-row details.server-subsection {
+				padding: 0;
+				min-width: 0;
+			}
+
+			.server-row details.server-subsection > summary {
+				font-size: 9pt;
+				opacity: 0.75;
+				padding: 2px 0;
+				cursor: pointer;
+			}
+
+			.server-row details.server-subsection[open] > summary {
+				margin-bottom: 4px;
+			}
+
+			details.help {
+				padding: 0;
+				margin: 0 0 6px 0;
+			}
+
+			details.help > summary {
+				cursor: pointer;
+				opacity: 0.85;
+			}
+
+			.server-row-header .buttons {
+				display: flex;
+				flex: 0 0 auto;
+				gap: 1px;
+			}
+
+			.server-row-line {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				margin-bottom: 4px;
+			}
+
+			.server-row-line:last-child {
+				margin-bottom: 0;
+			}
+
+			.server-pinned-ingests,
+			.server-ingest-scenes,
+			.server-ingest-aliases {
+				margin-top: 4px;
+				padding-top: 4px;
+				border-top: 1px solid rgba(255, 255, 255, 0.08);
+			}
+
+			.server-pinned-ingests-label {
+				font-size: 9pt;
+				opacity: 0.75;
+				margin-bottom: 4px;
+			}
+
+			.server-row-line .field-label {
+				flex: 0 0 auto;
+				width: 55px;
+				text-align: right;
+				font-size: 9pt;
+				opacity: 0.75;
+			}
+
+			.server-row input[type='text'],
+			.server-row input[type='password'],
+			.server-row input[type='number'] {
+				min-height: 26px;
+				padding: 0 4px;
+				min-width: 0;
+				box-sizing: border-box;
+			}
+
+			.server-row-line input[name='serverIp'] {
+				flex: 1 0 0;
+			}
+
+			.server-row-line input[name='serverPort'] {
+				flex: 0 0 64px;
+			}
+
+			.server-row-line input[name='serverPwd'] {
+				flex: 1 0 0;
 			}
 
 			.additional-settings {
@@ -189,77 +306,54 @@
 			<form>
 				<div class="section">
 					<div class="sdpi-heading">OBS Websocket Servers settings</div>
-					<p>
-						Multi OBS Controller plugin communicates with OBS Studio via OBS Websockets.
-						<br />
-						Follow these steps to configure the Websockets Server for each instance of
-						OBS Studio:
-					</p>
-					<p style="margin-left: 10px">
-						1. Open OBS Studio and go to Tools > Websocket Server Settings<br />
-						2. Check "Enable Websocket Server"<br />
-						3. Configure the Server Port and Server Password<br />
-						4. Apply and close the settings window
-					</p>
-					<p>Once the Websocket Servers are configured, add here their settings:</p>
-					<div class="obs-settings">
-						<div class="group">
-							<div class="group-label lines">OBS #1 Settings</div>
-							<div>
-								<div
-									class="item"
-									title="IP address of OBS WebSocket server. Please, provide a valid IP address"
-								>
-									<div class="label">IP</div>
-									<input
-										class="input"
-										type="text"
-										pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
-										name="ip1"
-									/>
-								</div>
-								<div class="item" title="Port of OBS WebSocket server">
-									<div class="label">Port</div>
-									<input class="input" type="number" name="port1" />
-								</div>
-								<div
-									class="item"
-									title="Password of OBS WebSocket server, if auth enabled"
-								>
-									<div class="label">Password</div>
-									<input class="input" type="password" name="pwd1" />
-								</div>
-							</div>
-						</div>
-						<div>
-							<div class="group-label lines">OBS #2 Settings</div>
-							<div>
-								<div
-									class="item"
-									title="IP address of OBS WebSocket server. Please, provide a valid IP address"
-								>
-									<div class="label">IP</div>
-									<input
-										class="input"
-										type="text"
-										pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
-										name="ip2"
-									/>
-								</div>
-								<div class="item" title="Port of OBS WebSocket server">
-									<div class="label">Port</div>
-									<input class="input" type="number" name="port2" />
-								</div>
-								<div
-									class="item"
-									title="Password of OBS WebSocket server, if auth enabled"
-								>
-									<div class="label">Password</div>
-									<input class="input" type="password" name="pwd2" />
-								</div>
-							</div>
+					<details class="help">
+						<summary>How to set up OBS Websocket servers</summary>
+						<p>
+							Multi OBS Controller plugin communicates with OBS Studio via OBS Websockets.
+							<br />
+							Follow these steps to configure the Websockets Server for each instance of
+							OBS Studio:
+						</p>
+						<p style="margin-left: 10px">
+							1. Open OBS Studio and go to Tools > Websocket Server Settings<br />
+							2. Check "Enable Websocket Server"<br />
+							3. Configure the Server Port and Server Password<br />
+							4. Apply and close the settings window
+						</p>
+						<p>Once the Websocket Servers are configured, add their settings below.</p>
+					</details>
+					<details class="help">
+						<summary>About IRLToolkit-managed servers</summary>
+						<p>
+							Mark a server as "Managed by IRLToolkit" if it's managed by IRLToolkit. IRLTK-marked servers are
+							the only ones offered as a target for IRLToolkit actions (Ingest Status/Volume/Scene),
+							and are hidden as targets for actions IRLToolkit itself disables manual control of
+							(record, stream, replay buffer, virtual cam, profile switching, capture device refresh).
+							Each IRLTK-marked server also gets its own Ingest → Scene Mapping, used by the
+							IRLToolkit Ingest Scene action to look up which scene to switch to for a given ingest
+							on that server (ingest and scene names can differ between servers).
+						</p>
+					</details>
+					<div class="server-items"></div>
+					<div class="sdpi-item">
+						<div class="sdpi-item-label empty"></div>
+						<div class="sdpi-item-value">
+							<button id="addServer" style="margin: 0 0 0 auto">Add server</button>
 						</div>
 					</div>
+					<details class="settings-transfer">
+						<summary>Export / import settings</summary>
+						<p>
+							Copy your settings (servers, passwords, aliases, etc.) as text to move them to another
+							install, e.g. from the original plugin. Passwords are included in plain text.
+						</p>
+						<textarea id="settingsTransferText" rows="4" style="width: 100%" spellcheck="false" placeholder="Exported settings appear here. To import, paste them here and click Import."></textarea>
+						<div style="display: flex; gap: 8px; margin: 4px 0 8px;">
+							<button id="exportSettings">Export</button>
+							<button id="importSettings">Import</button>
+						</div>
+						<p id="settingsTransferStatus"></p>
+					</details>
 					<button id="reconnect">
 						If you're having issues, click here to force a plugin ↔ OBS reinitialization
 						<svg
@@ -283,30 +377,50 @@
 					</button>
 				</div>
 				<div class="section">
+					<div class="sdpi-heading">IRLToolkit Ingests</div>
+					<p>
+						Optional display name override and category for each IRLToolkit ingest, matched by
+						ingest name (as shown in IRLToolkit, which doesn't support renaming ingests). Applies
+						across every server; add a per-server override under a server's "Managed by IRLToolkit"
+						settings above if a particular server needs something different for the same name.
+					</p>
+					<div id="ingestAliasList"></div>
+				</div>
+				<div class="section">
+					<div class="sdpi-heading">TVU Integration</div>
+					<p>
+						Account credentials used by the Ingest Status action to link a TVU pack and show
+						its battery level (refreshed about once a minute). Leave blank to disable.
+					</p>
+					<div class="sdpi-item" title="TVU account email">
+						<div class="sdpi-item-label">Email</div>
+						<input class="sdpi-item-value" type="text" name="tvuEmail">
+					</div>
+					<div class="sdpi-item" title="TVU account password">
+						<div class="sdpi-item-label">Password</div>
+						<input class="sdpi-item-value" type="password" name="tvuPassword">
+					</div>
+					<div class="sdpi-item" title="TVU API App Key">
+						<div class="sdpi-item-label">App Key</div>
+						<input class="sdpi-item-value" type="text" name="tvuAppKey">
+					</div>
+					<div class="sdpi-item" title="TVU API App Secret">
+						<div class="sdpi-item-label">App Secret</div>
+						<input class="sdpi-item-value" type="password" name="tvuAppSecret">
+					</div>
+				</div>
+				<div class="section">
 					<div class="sdpi-heading">Additional plugin settings</div>
 					<div class="additional-settings">
 						<div
-							type="radio"
+							type="checkbox"
 							class="sdpi-item"
 							id="defaultTarget"
 							title="OBS to target"
 							style="margin-top: 2px"
 						>
 							<div class="sdpi-item-label">Default Target</div>
-							<div class="sdpi-item-value" style="margin-bottom: 0px">
-								<input
-									id="obs0"
-									type="radio"
-									name="defaultTarget"
-									value="0"
-									checked
-								/>
-								<label for="obs0"><span></span>All</label>
-								<input id="obs1" type="radio" name="defaultTarget" value="1" />
-								<label for="obs1"><span></span>OBS #1</label>
-								<input id="obs2" type="radio" name="defaultTarget" value="2" />
-								<label for="obs2"><span></span>OBS #2</label>
-							</div>
+							<div class="sdpi-item-value" id="defaultTargetOptions" style="margin-bottom: 0px"></div>
 						</div>
 						<div
 							class="sdpi-item"
@@ -433,6 +547,7 @@
 			</form>
 		</div>
 		<script src="../libs/js/utils.js"></script>
+		<script src="./autocomplete.js"></script>
 		<script src="./configuration.js" type="module"></script>
 	</body>
 </html>
