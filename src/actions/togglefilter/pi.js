@@ -1,15 +1,24 @@
+// A tab's true socket index (see inspector.js's tab setup); the shared tab (2+ targets, no individual
+// settings) isn't tied to one server, so socket 0 is used as a fixed reference, matching the shared
+// blob's old "All"-mode convention
+function socketIdxOf(el) {
+	const { socketIdx } = el.closest('.tab-container').dataset;
+	return socketIdx !== undefined ? Number(socketIdx) : 0;
+}
+
 $PI.onSendToPropertyInspector('dev.theca11.multiobs.togglefilter', ({ payload }) => {
 	const { event, scenesLists, inputsLists, filterList } = payload;
 
 	if (event === 'SourceListLoaded') {
-		document.querySelectorAll('.sources > datalist').forEach((el, idx) => {
-			const sceneOptions = [...scenesLists[idx]].reverse().map((scene) => {
+		document.querySelectorAll('.sources > datalist').forEach((el) => {
+			const idx = socketIdxOf(el);
+			const sceneOptions = [...(scenesLists[idx] ?? [])].reverse().map((scene) => {
 				const option = document.createElement('option');
 				option.value = scene.sceneName;
 				option.textContent = scene.sceneName;
 				return option;
 			});
-			const inputOptions = [...inputsLists[idx]].reverse().map((input) => {
+			const inputOptions = [...(inputsLists[idx] ?? [])].reverse().map((input) => {
 				const option = document.createElement('option');
 				option.value = input.inputName;
 				option.textContent = input.inputName;
@@ -19,8 +28,8 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.togglefilter', ({ payload })
 		});
 	}
 	else if (event === 'FilterListLoaded') {
-		document.querySelectorAll('.filters > datalist').forEach((el, idx) => {
-			if (idx === payload.idx) {
+		document.querySelectorAll('.filters > datalist').forEach((el) => {
+			if (socketIdxOf(el) === payload.idx) {
 				const options = [...filterList].map((filterName) => {
 					const option = document.createElement('option');
 					option.value = filterName;
@@ -33,7 +42,8 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.togglefilter', ({ payload })
 	}
 });
 
-document.querySelectorAll('input[name="sourceName"').forEach((el, idx) => {
+document.querySelectorAll('input[name="sourceName"').forEach((el) => {
+	const idx = socketIdxOf(el);
 	// Init call
 	$PI.sendToPlugin({
 		event: 'GetSourceFilterList',

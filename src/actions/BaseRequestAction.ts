@@ -5,7 +5,7 @@ import { SDUtils } from '../plugin/utils';
 import { AbstractBaseWsAction } from './BaseWsAction';
 import { StateEnum } from './StateEnum';
 import { globalSettings } from './globalSettings';
-import { BatchRequestPayload, ConstructorParams, KeyDownData, PartiallyRequired, PersistentSettings, RequestPayload, SingleRequestPayload, SocketSettings } from './types';
+import { BatchRequestPayload, ConstructorParams, ContextData, KeyDownData, PartiallyRequired, PersistentSettings, RequestPayload, SingleRequestPayload, SocketSettings } from './types';
 
 /** Base class for all actions used to send OBS WS requests */
 export abstract class AbstractBaseRequestAction<T extends Record<string, unknown>> extends AbstractBaseWsAction<T> {
@@ -38,16 +38,16 @@ export abstract class AbstractBaseRequestAction<T extends Record<string, unknown
 		// 1. Get settings per instance, as expected later for OBS WS call, in an array
 		if (!this.contexts.has(context)) return;
 		const { settings, states } = this.contexts.get(context)!;
-		const payloadsArray = settings.map((socketSettings, socketIdx) => {
+		const payloadsArray = await Promise.all(settings.map(async (socketSettings, socketIdx) => {
 			try {
 				if (!socketSettings) return null;
-				return this.getPayloadFromSettings(socketIdx, socketSettings, states[socketIdx], userDesiredState);
+				return await this.getPayloadFromSettings(socketIdx, socketSettings, states[socketIdx], userDesiredState);
 			}
 			catch {
 				SDUtils.logActionError(socketIdx, this._actionId, 'Error parsing action settings - request will be invalid');
 				return { requestType: 'InvalidRequest' };
 			}
-		});
+		}));
 
 		// 2. Send WS requests
 		const results = await this._sendWsRequests(payloadsArray);
@@ -77,7 +77,8 @@ export abstract class AbstractBaseRequestAction<T extends Record<string, unknown
 	 * @param desiredState If in multiaction, the desired state by the user
 	 * @returns Object or array of objects properly formatted as OBS WS request payload
 	 */
-	abstract getPayloadFromSettings(socketIdx: number, settings: Exclude<SocketSettings<T>, null>, state: StateEnum, desiredState?: number): SingleRequestPayload<any> | BatchRequestPayload;
+	abstract getPayloadFromSettings(socketIdx: number, settings: Exclude<SocketSettings<T>, null>, state: StateEnum, desiredState?: number):
+		SingleRequestPayload<any> | BatchRequestPayload | Promise<SingleRequestPayload<any> | BatchRequestPayload>;
 
 	/**
 	 * Send OBS WS requests to OBS socket instances
@@ -104,7 +105,8 @@ export abstract class AbstractBaseRequestAction<T extends Record<string, unknown
 
 	async _sendWsCall(socketIdx: number, requestType: keyof OBSRequestTypes, requestData?: any) {
 		try {
-			await sockets[socketIdx].call(requestType, requestData);
+			const response = await sockets[socketIdx].call(requestType, requestData);
+			if (this._actionId === 'rawrequest') SDUtils.log(`[OBS_${socketIdx + 1}][rawrequest] Response: ${JSON.stringify(response)}`);
 			return;
 		}
 		catch (e) {
@@ -115,6 +117,12 @@ export abstract class AbstractBaseRequestAction<T extends Record<string, unknown
 	async _sendWsBatchCall(socketIdx: number, requests: RequestBatchRequest[], options?: RequestBatchOptions) {
 		try {
 			const results = await sockets[socketIdx].callBatch(requests, options);
+			if (SDUtils.debugEnabled) {
+				results.forEach((result, i) => {
+					const status = result.requestStatus.result ? 'OK' : `FAILED (${(result.requestStatus as { code: number, comment: string }).code}: ${(result.requestStatus as { code: number, comment: string }).comment})`;
+					SDUtils.logDebug(`[OBS_${socketIdx + 1}][${this._actionId}] Batch step ${i} [${result.requestType}]: ${status}`);
+				});
+			}
 			const errors = results.filter(result => !result.requestStatus.result);
 			if (errors.length === 0) { // all the requests in the batch succeeded
 				return;
@@ -133,7 +141,8 @@ export abstract class AbstractBaseRequestAction<T extends Record<string, unknown
 
 export abstract class AbstractStatelessRequestAction<T extends Record<string, unknown>> extends AbstractBaseRequestAction<T> {
 
-	override _updateSDState() {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept typed so a stateful subclass (e.g. IrltkIngestStatusAction) can further override with a real implementation
+	protected override _updateSDState(context: string, contextData: ContextData<unknown>) {
 		return;
 	}
 }

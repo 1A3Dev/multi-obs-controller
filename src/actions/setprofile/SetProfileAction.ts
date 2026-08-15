@@ -10,7 +10,7 @@ export class SetProfileAction extends AbstractStatefulRequestAction<ActionSettin
 	private _currentProfileName = new Array(sockets.length).fill(null);
 
 	constructor() {
-		super('dev.theca11.multiobs.setprofile', { titleParam: 'profileName', statusEvent: 'CurrentProfileChanged' });
+		super('dev.theca11.multiobs.setprofile', { titleParam: 'profileName', statusEvent: 'CurrentProfileChanged', irltkCompat: 'exclude' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('CurrentProfileChanged', ({ profileName }) => {

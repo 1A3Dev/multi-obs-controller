@@ -1,9 +1,11 @@
 import { OBSEventTypes } from 'obs-websocket-js';
 import pRetry from 'p-retry';
 import { sockets } from '../plugin/sockets';
-import { SDUtils, SVGUtils } from '../plugin/utils';
+import { SDUtils } from '../plugin/utils';
 import { StateEnum } from './StateEnum';
-import { globalSettings } from './globalSettings';
+import { globalSettings, resolveServers, resolveTargetIds, resolveTargetIndices } from './globalSettings';
+import { getIngestContextOverride, getIngests, getLastKnownIngestNames, sortIngests } from './irltkIngests';
+import { getLastKnownScenes, getScenesLists } from './lists';
 import { ContextData, SocketSettings, ConstructorParams, DidReceiveSettingsData, KeyDownData, KeyUpData, PartiallyRequired, PersistentSettings, SendToPluginData, WillAppearData, WillDisappearData } from './types';
 
 /** Base class for all actions used to communicate with OBS WS */
@@ -14,6 +16,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	private _titleParam: string | undefined;	// to-do: this type could be restricted more, something like keyof T?
 	private _statesColors = { active: '#517a96', intermediate: '#de902a', inactive: '#3d5b70' };
 	private _hideTargetIndicators = false;
+	private _irltkCompat: 'only' | 'exclude' | undefined;
 	protected _showSuccess = true;
 
 	private _pressCache = new Map<string, NodeJS.Timeout>(); // <context, timeoutRef>
@@ -26,6 +29,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this._titleParam = params?.titleParam;
 		this._statesColors = { ...this._statesColors, ...params?.statesColors };
 		this._hideTargetIndicators = !!params?.hideTargetIndicators;
+		this._irltkCompat = params?.irltkCompat;
 
 		// Load default image
 		this._getDefaultKeyImage().then(img => this._defaultKeyImg = img).catch(() => console.warn(`Default key image for ${this.UUID} couldn't be loaded`));
@@ -62,9 +66,12 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this.onWillAppear(async (evtData: WillAppearData<any>) => {
 			const { context, payload } = evtData;
 			const { settings, isInMultiAction } = payload;
+			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
-				targetObs: this.getTarget(settings),
+				targets,
+				displayIdx: targets.length ? Math.min(...targets) - 1 : 0,
 				isInMultiAction: !!isInMultiAction,
 				settings: settingsArray,
 				advancedSettings: settings.advanced,
@@ -87,9 +94,12 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this.onDidReceiveSettings(async (evtData: DidReceiveSettingsData<any>) => {
 			const { context, payload } = evtData;
 			const { settings, isInMultiAction } = payload;
+			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
-				targetObs: this.getTarget(settings),
+				targets,
+				displayIdx: targets.length ? Math.min(...targets) - 1 : 0,
 				isInMultiAction: !!isInMultiAction,
 				settings: settingsArray,
 				advancedSettings: settings.advanced,
@@ -140,6 +150,9 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		// Update images on global settings updated
 		$SD.onDidReceiveGlobalSettings(() => {
 			this.updateImages();
+			for (const context of this._contexts.keys()) {
+				$SD.getSettings(context);
+			}
 		});
 
 		// When PI is loaded and ready, extra optional logic per action
@@ -150,6 +163,37 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 			}
 			else if (payload.event === 'reconnect') {
 				sockets.forEach(socket => { socket.tryReconnect(); });
+			}
+			// Requested by the general configuration window (which isn't tied to any one action) to
+			// live-populate its ingest/scene name alias editors - handled here, in the common base class
+			// constructor, so it's answered regardless of which action's PI the window was opened from.
+			// Falls back to each socket's last-known list (see getLastKnownIngestNames/getLastKnownScenes)
+			// whenever the live one comes back empty (e.g. socket currently disconnected), so aliases set
+			// up while connected stay visible/editable instead of the editor going blank while offline.
+			// Unlike the live list, the fallback can't confirm a name still exists, so it's narrowed to
+			// only names that already have an alias saved - otherwise every ingest/scene ever seen this
+			// session would resurface as an empty, unverifiable row
+			else if (payload.event === 'getGlobalLists') {
+				const liveIngestsLists = sockets.map((_, socketIdx) => sortIngests([...getIngests(socketIdx).values()]));
+				const liveScenesLists = await getScenesLists();
+				const ingestsLists = liveIngestsLists.map((live, socketIdx) => {
+					if (live.length) return live;
+					return [...getLastKnownIngestNames(socketIdx)]
+					.filter(([obs_source_name]) => !!globalSettings[`ingestAlias__${obs_source_name}`])
+					.map(([obs_source_name, name]) => ({ obs_source_name, name }));
+				});
+				const scenesLists = liveScenesLists.map((scenes, socketIdx) => {
+					if (scenes.length) return scenes;
+					return getLastKnownScenes(socketIdx).filter(({ sceneName }) => !!globalSettings[`sceneAlias__${sceneName}`]);
+				});
+				// Names confirmed present right now on a socket that's actually connected - as opposed to
+				// ingestsLists/scenesLists above, which may include last-known/offline data. The alias
+				// editors use this to decide when it's safe to offer deleting a stale, never-aliased row:
+				// only once its name is confirmed absent from every currently-connected socket, never just
+				// because one particular socket (which might be the one it belongs to) is offline right now
+				const connectedIngestSourceNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveIngestsLists[socketIdx].map(i => i.obs_source_name) : []);
+				const connectedSceneNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveScenesLists[socketIdx].map(s => s.sceneName) : []);
+				$SD.sendToPropertyInspector(context, { event: 'GlobalListsLoaded', ingestsLists, scenesLists, connectedIngestSourceNames, connectedSceneNames }, action);
 			}
 		});
 
@@ -198,23 +242,41 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	// -- General helpers
 	getCommonSettings(settings: PersistentSettings<T>) {
 		settings = settings ?? {};
+		// An active Open Ingest Profile override takes priority over this button's own Target setting,
+		// for IRLTK-only actions specifically - that's the whole point of the override (see irltkIngests.ts)
+		const overrideTarget = this._irltkCompat === 'only' ? getIngestContextOverride().target : undefined;
 		return {
-			target: parseInt(settings.common?.target || globalSettings.defaultTarget || '0'),
+			targets: overrideTarget !== undefined ? [overrideTarget] : resolveTargetIndices(settings.common?.target || globalSettings.defaultTarget, resolveServers(globalSettings)),
 			indivParams: !!settings.common?.indivParams,
 		};
 	}
 
-	getTarget(settings: PersistentSettings<T>): number {
-		return this.getCommonSettings(settings).target;
+	getTargets(settings: PersistentSettings<T>): number[] {
+		return this.getCommonSettings(settings).targets;
 	}
 
 	getSettingsArray(settings: PersistentSettings<T>): (SocketSettings<T> | null)[] {
 		settings = settings ?? {};
-		const { target, indivParams } = this.getCommonSettings(settings);
+		const { targets, indivParams } = this.getCommonSettings(settings);
+		const servers = resolveServers(globalSettings);
 		const settingsArray = [];
 		for (let i = 0; i < sockets.length; i++) {
-			if (target === 0 || target === i + 1) {
-				settingsArray.push(settings[`params${(target === 0 && !indivParams) ? 1 : i + 1}`] ?? {});
+			if (targets.includes(i + 1) && this._isSocketEligible(i)) {
+				if (targets.length > 1 && !indivParams) {
+					// Multiple targets sharing one params blob always live in the fixed params_shared slot,
+					// regardless of which servers are actually selected/their order - there's no single
+					// server identity to key it by. params1 is also checked, for a button saved before
+					// multi-select existed (target was '0'/All, non-individual) - that's where its shared
+					// blob still lives until this button is resaved
+					settingsArray.push(settings.params_shared ?? settings.params1 ?? {});
+				}
+				else {
+					// Keyed by the server's stable id so a saved single-target/individual params blob
+					// keeps following its server if `servers` gets reordered, falling back to the old
+					// positional params{n} key for buttons saved before servers had ids
+					const id = servers[i]?.id;
+					settingsArray.push((id ? settings[`params_${id}`] : undefined) ?? settings[`params${i + 1}`] ?? {});
+				}
 			}
 			else {
 				settingsArray.push(null);
@@ -222,7 +284,81 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		}
 		return settingsArray;
 	}
+
+	/**
+	 * One-time per-button migration: rewrites a button's own legacy positional target/params - saved
+	 * before per-server ids existed, or before this button's PI was ever reopened since - into their
+	 * id-based equivalents, resolved against the server positions as they exist right now. Mirrors the
+	 * server-list migration in app.ts, but has to run per-button since it depends on that button's own
+	 * settings. Runs on every appear/settings-update, but is a no-op once already migrated, so this only
+	 * ever writes once per button - critical to do automatically rather than waiting on the user to
+	 * manually reopen/re-edit every button's PI, since the PI's own "keep at least one target checked"
+	 * guard makes it impossible to force a resave by simply toggling the only checked target off and on
+	 */
+	private _migrateLegacySettings(context: string, settings: PersistentSettings<T>): void {
+		const rawTarget = settings?.common?.target;
+		if (rawTarget === undefined) return; // brand new button - nothing saved yet to migrate
+		const servers = resolveServers(globalSettings);
+		const alreadyIds = Array.isArray(rawTarget) && rawTarget.every((t) => servers.some((server) => server.id === t));
+		const idTargets = resolveTargetIds(rawTarget, servers);
+		if (!idTargets.length) return; // unresolvable - leave settings untouched rather than saving an empty target
+
+		// Legacy per-server params blobs (params{n}) get copied to their id-keyed equivalent, for
+		// whichever server(s) this button is about to be saved as targeting - capturing the position
+		// they're currently sitting at before any further reordering can invalidate that association
+		const paramsUpdates: Record<string, unknown> = {};
+		idTargets.forEach((id) => {
+			const index = servers.findIndex((server) => server.id === id) + 1;
+			const idKey = `params_${id}` as const;
+			const legacyKey = `params${index}` as const;
+			if ((settings as Record<string, unknown>)[idKey] === undefined && (settings as Record<string, unknown>)[legacyKey] !== undefined) {
+				paramsUpdates[idKey] = (settings as Record<string, unknown>)[legacyKey];
+			}
+		});
+
+		if (alreadyIds && Object.keys(paramsUpdates).length === 0) return; // nothing to migrate
+		$SD.setSettings(context, { ...settings, common: { ...settings.common, target: idTargets }, ...paramsUpdates });
+	}
+
+	/**
+	 * Whether a socket is a valid target for this action, per its General Configuration "IRLTK" flag and
+	 * this action's irltkCompat restriction (if any). Actions with no restriction accept every socket
+	 */
+	private _isSocketEligible(socketIdx: number): boolean {
+		if (!this._irltkCompat) return true;
+		const isIrltk = resolveServers(globalSettings)[socketIdx]?.irltk === 'true';
+		return this._irltkCompat === 'only' ? isIrltk : !isIrltk;
+	}
 	// --
+
+	/**
+	 * Show the SD alert (warning triangle) overlay on a context - for dial actions to call from their
+	 * press/rotate/tap handlers when one or more of their targeted (non-null settings) sockets is
+	 * currently disconnected, so nothing happened there. Those interactions mostly cache locally and
+	 * commit via a debounce, so they'd otherwise fail silently instead of surfacing the same feedback a
+	 * regular button gets from AbstractBaseRequestAction's _execute on a WS call failure. Respects the
+	 * same "feedback: hide" global setting as that path
+	 */
+	protected _warnIfDisconnected(context: string, settings: (SocketSettings<T> | null)[]): void {
+		if (globalSettings.feedback === 'hide') return;
+		if (settings.some((socketSettings, socketIdx) => socketSettings && !sockets[socketIdx].isConnected)) {
+			$SD.showAlert(context);
+		}
+	}
+
+	/**
+	 * Wrap a flat setFeedback payload (key -> display value, or an object of item property overrides for
+	 * keys that need more than just their value updated, e.g. a bar's fill color) with a shared opacity,
+	 * dimmed while the given socket is disconnected - so a Stream Deck + dial's touch screen visibly reads
+	 * as stale instead of silently continuing to show whatever it last displayed while connected
+	 */
+	protected _dimFeedback(feedback: Record<string, string | number | Record<string, unknown>>, socketIdx: number): Record<string, Record<string, unknown>> {
+		const opacity = sockets[socketIdx]?.isConnected ? 1 : 0.4;
+		return Object.fromEntries(Object.entries(feedback).map(([key, value]) => [
+			key,
+			typeof value === 'object' ? { ...value, opacity } : { value, opacity },
+		]));
+	}
 
 	/**
 	 * Update key title with the corresponding settings param string, depending on configured target
@@ -263,10 +399,10 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		return this.fetchState ? this.fetchState(socketSettings, socketIdx) : StateEnum.None;
 	}
 
-	// Update SD state - active (0) only if all target states are active
+	// Update SD state - active (0) only if every targeted state is active
 	protected _updateSDState(context: string, contextData: ContextData<unknown>) {
-		const { targetObs, states } = contextData;
-		const sdState = states.filter((_, i) => targetObs === 0 || targetObs - 1 === i).every(state => state === StateEnum.Active) ? 0 : 1;
+		const { targets, states } = contextData;
+		const sdState = states.filter((_, i) => targets.includes(i + 1)).every(state => state === StateEnum.Active) ? 0 : 1;
 		$SD.setState(context, sdState);
 	}
 	// --
@@ -329,7 +465,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 
 	private async _generateKeyImage(context: string) {
 		if (!this._contexts.has(context)) return;
-		const { states, targetObs, advancedSettings } = this._contexts.get(context)!;
+		const { states, targets, advancedSettings } = this._contexts.get(context)!;
 
 		// State rectangles
 		let bgLayer = '', fgLayer = '';
@@ -338,29 +474,29 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		const intermediateColor = this._getBgColor(context, 'Intermediate');
 
 		if (states) {
-			if (targetObs !== 0) {
-				if (states[targetObs - 1] === StateEnum.Unavailable) {
-					fgLayer += SVGUtils.createVPattern();
-				}
-				else {
-					bgLayer += `<rect x="0" y="0" width="144" height="144" fill="${states[targetObs - 1] === StateEnum.Inactive ? inactiveColor : states[targetObs - 1] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
-					if (states[targetObs - 1] === StateEnum.Inactive) {
-						fgLayer += '<rect x="0" y="0" width="144" height="144" fill="black" fill-opacity="0.5"/>';
-					}
+			if (targets.length === 1) {
+				const idx = targets[0] - 1;
+				const isDimmed = states[idx] === StateEnum.Inactive || states[idx] === StateEnum.Unavailable;
+				bgLayer += `<rect x="0" y="0" width="144" height="144" fill="${isDimmed ? inactiveColor : states[idx] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
+				if (isDimmed) {
+					fgLayer += '<rect x="0" y="0" width="144" height="144" fill="black" fill-opacity="0.5"/>';
 				}
 			}
 			else {
-				for (let i = 0; i < states.length; i++) {
-					if (states[i] === StateEnum.Unavailable) {
-						fgLayer += SVGUtils.createVPattern(i / 2, (i + 1) / 2);
+				// Multiple (or zero) targets: one equal-width vertical slice per targeted server, in target
+				// order - not one slice per socket slot, so an arbitrary subset renders tightly instead of
+				// leaving gaps for servers that aren't selected
+				const n = targets.length;
+				targets.forEach((pos, sliceIdx) => {
+					const idx = pos - 1;
+					const x = 144 * sliceIdx / n;
+					const width = 144 * (sliceIdx + 1) / n - x;
+					const isDimmed = states[idx] === StateEnum.Inactive || states[idx] === StateEnum.Unavailable;
+					bgLayer += `<rect x="${x}" y="0" width="${width}" height="144" fill="${isDimmed ? inactiveColor : states[idx] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
+					if (isDimmed) {
+						fgLayer += `<rect x="${x}" y="0" width="${width}"  height="144" fill="black" fill-opacity="0.5"/>`;
 					}
-					else {
-						bgLayer += `<rect x="${144 * i / 2}" y="0" width="${144 * (i + 1) / 2}" height="144" fill="${states[i] === StateEnum.Inactive ? inactiveColor : states[i] === StateEnum.Intermediate ? intermediateColor : activeColor}"/>`;
-						if (states[i] === StateEnum.Inactive) {
-							fgLayer += `<rect x="${144 * i / 2}" y="0" width="${144 * (i + 1) / 2}"  height="144" fill="black" fill-opacity="0.5"/>`;
-						}
-					}
-				}
+				});
 			}
 		}
 
@@ -371,11 +507,15 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 			const pos = globalSettings.targetNumbers ?? 'top';
 
 			const yPos = pos === 'top' ? 28 : pos === 'middle' ? 144 / 2 + 10 : 144 - 10;
-			if (targetObs === 0 || targetObs === 1) {
-				targetsText += `<text x="${0 + 10}" y="${yPos}" text-anchor="start" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">1</text>`;
+			if (targets.length > 1 && states) {
+				const n = targets.length;
+				targets.forEach((serverPos, sliceIdx) => {
+					const xPos = 144 * (sliceIdx + 0.5) / n;
+					targetsText += `<text x="${xPos}" y="${yPos}" text-anchor="middle" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">${serverPos}</text>`;
+				});
 			}
-			if (targetObs === 0 || targetObs === 2) {
-				targetsText += `<text x="${144 - 10}" y="${yPos}" text-anchor="end" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">2</text>`;
+			else if (targets.length === 1) {
+				targetsText += `<text x="${0 + 10}" y="${yPos}" text-anchor="start" font-size="24" font-family="Arial, sans-serif" font-weight="bold" fill="${fgColor}">${targets[0]}</text>`;
 			}
 		}
 

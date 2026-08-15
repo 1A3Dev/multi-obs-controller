@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover"
+		/>
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+		<title>Previous Profile Property Inspector</title>
+		<link rel="stylesheet" href="../libs/css/sdpi.css" />
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+
+	<body>
+		<div class="sdpi-wrapper" style="visibility: hidden">
+			<div class="sdpi-item">
+				<div class="sdpi-item-label empty"></div>
+				<div class="sdpi-item-value">No configuration needed - returns to whichever profile was open before this one.</div>
+			</div>
+		</div>
+		<script src="../libs/js/constants.js"></script>
+		<script src="../libs/js/prototypes.js"></script>
+		<script src="../libs/js/timers.js"></script>
+		<script src="../libs/js/utils.js"></script>
+		<script src="../libs/js/events.js"></script>
+		<script src="../libs/js/api.js"></script>
+		<script src="../libs/js/property-inspector.js"></script>
+		<script src="../libs/js/dynamic-styles.js"></script>
+		<script type="module">
+			$PI.onConnected(() => {
+				document.querySelector('.sdpi-wrapper').style.visibility = 'visible';
+			});
+		</script>
+	</body>
+</html>

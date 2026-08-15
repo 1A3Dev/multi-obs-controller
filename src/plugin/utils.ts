@@ -90,20 +90,6 @@ export class SVGUtils {
 		toRemove?.remove();
 		return textBBox;
 	}
-
-	/**
-	 * Create a pattern of vertical lines
-	 */
-	static createVPattern(start = 0, end = 1, width = 144, height = 144, lines = 16) {
-		const numLines = lines;
-		const lineW = width / numLines;
-		const linesToDraw = numLines * (end - start);
-		let pattern = '';
-		for (let i = 0; i < linesToDraw; i++) {
-			pattern += `<rect x="${i * lineW + (width * start)}" y="0" width="${lineW}" height="${height}" fill="${i % 2 ? '#333333' : '#666666'}" fill-opacity="0.6"/>`;
-		}
-		return pattern;
-	}
 }
 
 /**
@@ -117,4 +103,12 @@ export function secondsToTimecode(seconds: number): string {
 	]
 	.map(n => Math.floor(n).toString().padStart(2, '0'))
 	.join(':');
+}
+
+/**
+ * Parse an hh:mm:ss timecode (as reported by e.g. IRLTKStatusUpdate) back into a number of seconds
+ */
+export function timecodeToSeconds(timecode: string): number {
+	const [hours, minutes, seconds] = timecode.split(':').map(Number);
+	return (hours * 60 + minutes) * 60 + seconds;
 }

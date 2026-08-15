@@ -9,7 +9,7 @@ export class ToggleVirtualCamAction extends AbstractStatefulRequestAction<Action
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.togglevirtualcam', { statusEvent: 'VirtualcamStateChanged' });
+		super('dev.theca11.multiobs.togglevirtualcam', { statusEvent: 'VirtualcamStateChanged', irltkCompat: 'exclude' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('VirtualcamStateChanged', ({ outputActive }) => {

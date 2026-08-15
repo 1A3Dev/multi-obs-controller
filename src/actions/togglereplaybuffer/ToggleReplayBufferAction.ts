@@ -9,7 +9,7 @@ export class ToggleReplayBufferAction extends AbstractStatefulRequestAction<Acti
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.togglereplaybuffer', { statusEvent: 'ReplayBufferStateChanged' });
+		super('dev.theca11.multiobs.togglereplaybuffer', { statusEvent: 'ReplayBufferStateChanged', irltkCompat: 'exclude' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('ReplayBufferStateChanged', ({ outputActive }) => {

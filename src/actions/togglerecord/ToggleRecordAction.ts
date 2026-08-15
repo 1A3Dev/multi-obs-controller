@@ -13,7 +13,7 @@ export class ToggleRecordAction extends AbstractStatefulRequestAction<ActionSett
 	private _timerInterval: NodeJS.Timeout | undefined;
 
 	constructor() {
-		super('dev.theca11.multiobs.togglerecord', { statusEvent: 'RecordStateChanged', statesColors: { active: '#cc3636' } });
+		super('dev.theca11.multiobs.togglerecord', { statusEvent: 'RecordStateChanged', statesColors: { active: '#cc3636' }, irltkCompat: 'exclude' });
 		this._attachListenersForTimer();
 	}
 

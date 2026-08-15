@@ -25,6 +25,15 @@
 	],
 	"Category": "Multi OBS Controller",
 	"CategoryIcon": "assets/categoryIcon",
+	"Profiles": [
+		{
+            "AutoInstall": true,
+			"DeviceType": 7,
+			"DontAutoSwitchWhenInstalled": true,
+			"Name": "IRLToolkit Ingests (Auto)",
+			"Readonly": true
+		}
+	],
 	"Actions": [
 		{
 			"UUID": "dev.theca11.multiobs.togglestream",
@@ -221,6 +230,27 @@
 			"DisableAutomaticStates": true
 		},
 		{
+			"UUID": "dev.theca11.multiobs.setinputvolume",
+			"Icon": "assets/actions/setinputvolume/icon",
+			"Name": "Input Volume",
+			"Tooltip": "Adjust an input source's volume with a Stream Deck + dial",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/setinputvolume/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/setinputvolume/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust volume",
+					"Push": "Toggle mute",
+					"Touch": "Reset to 0 dB"
+				}
+			}
+		},
+		{
 			"UUID": "dev.theca11.multiobs.mediainputcontrol",
 			"Icon": "assets/actions/mediainputcontrol/icon",
 			"Name": "Media Source Control",
@@ -246,6 +276,27 @@
 			"DisableAutomaticStates": true
 		},
 		{
+			"UUID": "dev.theca11.multiobs.mediainputcontroldial",
+			"Icon": "assets/actions/mediainputcontroldial/icon",
+			"Name": "Media Source Control (Dial)",
+			"Tooltip": "Seek a media source's playback position with a Stream Deck + dial, push or tap to play/pause/stop/restart (configurable)",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/mediainputcontroldial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/mediainputcontroldial/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Seek forward/backward",
+					"Push": "Play/Pause/Stop/Restart (configurable)",
+					"Touch": "Play/Pause/Stop/Restart (configurable)"
+				}
+			}
+		},
+		{
 			"UUID": "dev.theca11.multiobs.togglefilter",
 			"Icon": "assets/actions/togglefilter/icon",
 			"Name": "Filter",
@@ -261,6 +312,27 @@
 				}
 			],
 			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "dev.theca11.multiobs.filtersettingdial",
+			"Icon": "assets/actions/filtersettingdial/icon",
+			"Name": "Filter Setting",
+			"Tooltip": "Adjust a numeric source filter setting with a Stream Deck + dial",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/filtersettingdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/filtersettingdial/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust setting",
+					"Push": "Resync from OBS",
+					"Touch": "Resync from OBS"
+				}
+			}
 		},
 		{
 			"UUID": "dev.theca11.multiobs.togglestudiomode",
@@ -293,6 +365,48 @@
 				}
 			],
 			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "dev.theca11.multiobs.scenepreviewdial",
+			"Icon": "assets/actions/scenepreviewdial/icon",
+			"Name": "Scene Preview/Program",
+			"Tooltip": "Browse scenes with a Stream Deck + dial, push to switch Preview or Program (configurable) to the selected scene, or tap the screen to cancel",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/scenepreviewdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/scenepreviewdial/icon",
+				"layout": "actions/scenepreviewdial/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Browse scenes",
+					"Push": "Switch to selected scene",
+					"Touch": "Cancel and revert to current scene"
+				}
+			}
+		},
+		{
+			"UUID": "dev.theca11.multiobs.sceneitemtransformdial",
+			"Icon": "assets/actions/sceneitemtransformdial/icon",
+			"Name": "Source Transform",
+			"Tooltip": "Adjust a scene item's position, scale, rotation or crop with a Stream Deck + dial",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/sceneitemtransformdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/sceneitemtransformdial/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust value",
+					"Push": "Reset to default",
+					"Touch": "Reset to default"
+				}
+			}
 		},
 		{
 			"UUID": "dev.theca11.multiobs.screenshot",
@@ -349,6 +463,164 @@
 				}
 			],
 			"SupportedInMultiActions": false
+		},
+		{
+			"UUID": "dev.theca11.multiobs.connectionstatus",
+			"Icon": "assets/actions/connectionstatus/icon",
+			"Name": "Connection Status",
+			"Tooltip": "Show whether the targeted OBS instance(s) are connected via a dedicated icon",
+			"States": [
+				{
+					"Image": "assets/actions/connectionstatus/key_on",
+					"Name": "Connected"
+				},
+				{
+					"Image": "assets/actions/connectionstatus/key_off",
+					"Name": "Disconnected"
+				}
+			],
+			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "dev.theca11.multiobs.streamstatus",
+			"Icon": "assets/actions/streamstatus/icon",
+			"Name": "Stream Status",
+			"Tooltip": "Show whether the targeted OBS instance(s) are currently live via a dedicated icon",
+			"States": [
+				{
+					"Image": "assets/actions/streamstatus/key_on",
+					"Name": "Online"
+				},
+				{
+					"Image": "assets/actions/streamstatus/key_off",
+					"Name": "Offline"
+				},
+				{
+					"Image": "assets/actions/streamstatus/key_disconnected",
+					"Name": "Disconnected"
+				}
+			],
+			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingeststatus",
+			"Icon": "assets/actions/irltkingeststatus/icon",
+			"Name": "IRLToolkit Ingest Status",
+			"Tooltip": "Show the live status of an IRLToolkit ingest player, and reload it on press (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingeststatus/key_online",
+					"Name": "Online"
+				},
+				{
+					"Image": "assets/actions/irltkingeststatus/key_lowbitrate",
+					"Name": "Low Bitrate"
+				},
+				{
+					"Image": "assets/actions/irltkingeststatus/key_offline",
+					"Name": "Offline"
+				},
+				{
+					"Image": "assets/actions/irltkingeststatus/key_disconnected",
+					"Name": "Disconnected"
+				}
+			],
+			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingestvolume",
+			"Icon": "assets/actions/irltkingestvolume/icon",
+			"Name": "IRLToolkit Ingest Volume",
+			"Tooltip": "Adjust an IRLToolkit ingest's volume with a Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list (Cloud OBS only)",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestvolume/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/irltkingestvolume/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust volume",
+					"Push": "Toggle mute",
+					"Touch": "Reset to 0 dB"
+				}
+			}
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingestpageprev",
+			"Icon": "assets/actions/irltkingestpageprev/icon",
+			"Name": "Ingest Page Previous",
+			"Tooltip": "Step the shared IRLToolkit ingest page back one page, for use with Ingest Status/Volume actions set to Dynamic Position while viewed via an Open Ingest Profile button (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestpageprev/key_on",
+					"Name": "Enabled"
+				},
+				{
+					"Image": "assets/actions/irltkingestpageprev/key_off",
+					"Name": "Disabled"
+				}
+			],
+			"DisableAutomaticStates": true,
+            "VisibleInActionsList": false
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingestpagenext",
+			"Icon": "assets/actions/irltkingestpagenext/icon",
+			"Name": "Ingest Page Next",
+			"Tooltip": "Step the shared IRLToolkit ingest page forward one page, for use with Ingest Status/Volume actions set to Dynamic Position while viewed via an Open Ingest Profile button (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestpagenext/key_on",
+					"Name": "Enabled"
+				},
+				{
+					"Image": "assets/actions/irltkingestpagenext/key_off",
+					"Name": "Disabled"
+				}
+			],
+			"DisableAutomaticStates": true,
+            "VisibleInActionsList": false
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingestpagenumber",
+			"Icon": "assets/actions/irltkingestpagenumber/icon",
+			"Name": "Ingest Page Number",
+			"Tooltip": "Show the shared IRLToolkit ingest page as \"current/total\" (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestpagenumber/key_on"
+				}
+			],
+			"DisableAutomaticStates": true,
+            "VisibleInActionsList": false
+		},
+		{
+			"UUID": "dev.theca11.multiobs.openingestprofile",
+			"Icon": "assets/actions/openingestprofile/icon",
+			"Name": "Open Ingest Profile",
+			"Tooltip": "Switch to the bundled \"IRLToolkit Ingests (Auto)\" profile, and set which server (and whether offline ingests are included) its IRLTK ingest actions should show - overriding those buttons' own settings while that profile is open. Pair with Previous Profile on the destination profile",
+			"PropertyInspectorPath": "propertyInspector/openingestprofile.html",
+			"States": [
+				{
+					"Image": "assets/actions/openingestprofile/key_on"
+				}
+			]
+		},
+		{
+			"UUID": "dev.theca11.multiobs.previousprofile",
+			"Icon": "assets/actions/previousprofile/icon",
+			"Name": "Previous Profile",
+			"Tooltip": "Return to the previous Stream Deck profile (e.g. one opened via Open Ingest Profile). No configuration needed",
+			"PropertyInspectorPath": "propertyInspector/previousprofile.html",
+			"States": [
+				{
+					"Image": "assets/actions/previousprofile/key_on"
+				}
+			],
+            "VisibleInActionsList": false
 		},
 		{
 			"UUID": "dev.theca11.multiobs.rawrequest",

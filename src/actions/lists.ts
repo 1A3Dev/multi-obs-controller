@@ -1,5 +1,28 @@
 import { sockets } from '../plugin/sockets';
 
+// Last known scene list per socket, regardless of current connection state - unlike the live
+// GetSceneList call in getScenesLists() below, this is never cleared on disconnect, so the general
+// configuration window's scene alias editor can still show (and let the user edit aliases for) scenes
+// that existed the last time the socket was connected, rather than going blank while it's offline
+const lastKnownScenes: { sceneName: string }[][] = new Array(sockets.length).fill(null).map(() => []);
+
+sockets.forEach((socket, socketIdx) => {
+	socket.on('SceneListChanged', ({ scenes }) => {
+		lastKnownScenes[socketIdx] = scenes as { sceneName: string }[];
+	});
+	socket.on('Identified', async () => {
+		const { scenes } = await socket.call('GetSceneList').catch(() => ({ scenes: undefined }));
+		if (scenes) lastKnownScenes[socketIdx] = scenes as { sceneName: string }[];
+	});
+});
+
+/**
+ * Last known scene list for a socket, regardless of current connection state - see lastKnownScenes
+ */
+export function getLastKnownScenes(socketIdx: number): { sceneName: string }[] {
+	return lastKnownScenes[socketIdx];
+}
+
 /**
  * Get a list of all collections in all OBS instances
  * @returns One array of collection names per OBS instance
@@ -74,6 +97,18 @@ export async function getGroupSceneItemsList(socketIdx: number, groupName: strin
 	catch {
 		return [];
 	}
+}
+
+/**
+ * Get a list of all scene transitions in all OBS instances
+ * @returns One array of transitions per OBS instance. Each transition JsonObject contains
+ * transitionName, transitionKind and transitionFixed (among others)
+ */
+export async function getTransitionsLists() {
+	const results = await Promise.allSettled(
+		sockets.map(socket => socket.isConnected ? socket.call('GetSceneTransitionList') : Promise.reject()),
+	);
+	return results.map(result => result.status === 'fulfilled' ? result.value.transitions : []);
 }
 
 /**

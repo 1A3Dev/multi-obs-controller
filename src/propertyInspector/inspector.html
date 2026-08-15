@@ -16,16 +16,9 @@
 	<body>
 		<div class="sdpi-wrapper" style="visibility: hidden">
 			<form id="common-fields">
-				<div type="radio" class="sdpi-item" id="target" style="margin-top: 2px">
+				<div type="checkbox" class="sdpi-item" id="target" style="margin-top: 2px">
 					<div class="sdpi-item-label" title="OBS to target" data-i18n>Target</div>
-					<div class="sdpi-item-value">
-						<input id="obs0" type="radio" name="target" value="0" />
-						<label for="obs0" data-i18n><span></span>All</label>
-						<input id="obs1" type="radio" name="target" value="1" />
-						<label for="obs1"><span></span>OBS #1</label>
-						<input id="obs2" type="radio" name="target" value="2" />
-						<label for="obs2"><span></span>OBS #2</label>
-					</div>
+					<div class="sdpi-item-value" id="targetOptions"></div>
 				</div>
 				<div type="checkbox" class="sdpi-item" id="indivParams" style="margin-top: 0px">
 					<div class="sdpi-item-label empty"></div>
