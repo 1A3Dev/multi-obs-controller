@@ -117,7 +117,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		// -- Sockets connected/disconnected
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('Identified', async () => {
-				if (this.onSocketConnected) {
+				if (this.onSocketConnected && this._isSocketEligible(socketIdx)) {
 					await pRetry(() => this.onSocketConnected!(socketIdx), {
 						retries: 5,
 						minTimeout: 100,

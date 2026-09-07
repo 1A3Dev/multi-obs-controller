@@ -101,6 +101,10 @@ export type GlobalSettings = Partial<{
 	[key: `ingestAlias__${string}`]: string,
 	[key: `ingestCategory__${string}`]: IngestCategory,
 	[key: `sceneAlias__${string}`]: string,
+	tvuEmail: string,
+	tvuPassword: string,
+	tvuAppKey: string,
+	tvuAppSecret: string,
 }>
 
 export type SocketSettings<T> = Partial<T> | Record<string, never>;

@@ -2,9 +2,10 @@ import { sockets } from '../../plugin/sockets';
 import { AbstractStatelessRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
 import { getIngestDisplayName, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestOnline, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getTvuBatteryPercent, onTvuBatteryUpdated, setTvuDeviceLink } from '../tvuBattery';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
-type ActionSettings = IrltkTargetSettings & { titleTemplate?: string }
+type ActionSettings = IrltkTargetSettings & { titleTemplate?: string, tvuDevice?: string }
 
 /** Manifest state indexes - must match the "States" order in manifest.json for this action */
 const enum KeyState {
@@ -28,6 +29,14 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		};
 		onIngestsUpdated(refresh);
 		onIngestPageChanged(refresh);
+
+		// A linked TVU pack's battery is polled independently of ingest updates (see tvuBattery.ts) - once
+		// a reading changes, every context showing it needs its title refreshed to pick up {battery}
+		onTvuBatteryUpdated(() => {
+			for (const [context, contextData] of this.contexts) {
+				this._updateIngestTitle(context, contextData);
+			}
+		});
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): SingleRequestPayload<'PressInputPropertiesButton'> {
@@ -50,11 +59,17 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 	}
 
 	override async onContextAppear(context: string, contextData: ContextData<ActionSettings>): Promise<void> {
+		setTvuDeviceLink(context, contextData.settings[contextData.displayIdx]?.tvuDevice);
 		this._updateIngestTitle(context, contextData);
 	}
 
 	override async onContextSettingsUpdated(context: string, contextData: ContextData<ActionSettings>): Promise<void> {
+		setTvuDeviceLink(context, contextData.settings[contextData.displayIdx]?.tvuDevice);
 		this._updateIngestTitle(context, contextData);
+	}
+
+	override async onContextDisappear(context: string): Promise<void> {
+		setTvuDeviceLink(context, undefined);
 	}
 
 	// This action relies entirely on the manifest's native States (Online/Low Bitrate/Offline, set via
@@ -106,6 +121,8 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		const ingest = resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx));
 		const name = ingest ? getIngestDisplayName(ingest) : '';
 		const bitrate = ingest && isIngestOnline(ingest, getThresholds(displayIdx)) ? `${ingest.router_bitrate.toLocaleString('en-US')} kbps` : '';
+		const batteryPercent = socketSettings.tvuDevice ? getTvuBatteryPercent(socketSettings.tvuDevice.trim()) : undefined;
+		const battery = batteryPercent !== undefined ? `${batteryPercent}%` : '';
 
 		// A line consisting of nothing but a variable that resolved empty is dropped entirely, rather
 		// than left as a blank line, so e.g. a lone "{bitrate}" line disappears while the ingest is
@@ -113,7 +130,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		// spacer) is left alone since it never contained a variable to begin with
 		const templateLines = socketSettings.titleTemplate.split('\n');
 		const title = templateLines
-		.map(line => line.replace(/\{name\}/g, name).replace(/\{bitrate\}/g, bitrate))
+		.map(line => line.replace(/\{name\}/g, name).replace(/\{bitrate\}/g, bitrate).replace(/\{battery\}/g, battery))
 		.filter((line, i) => line !== '' || templateLines[i] === '')
 		.join('\n');
 		$SD.setTitle(context, title);

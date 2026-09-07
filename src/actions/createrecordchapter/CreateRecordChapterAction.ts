@@ -9,7 +9,7 @@ export class CreateRecordChapterAction extends AbstractStatefulRequestAction<Act
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.createrecordchapter', { titleParam: 'chapterName', statusEvent: 'RecordStateChanged' });
+		super('dev.theca11.multiobs.createrecordchapter', { titleParam: 'chapterName', statusEvent: 'RecordStateChanged', irltkCompat: 'exclude' });
 		this._showSuccess = true; // force showing success icon
 
 		sockets.forEach((socket, socketIdx) => {

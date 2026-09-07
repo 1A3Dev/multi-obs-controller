@@ -10,7 +10,7 @@ export class ScreenshotAction extends AbstractStatelessRequestAction<ActionSetti
 	private _currentSceneName = new Array(sockets.length).fill('');
 
 	constructor() {
-		super('dev.theca11.multiobs.screenshot', { titleParam: 'screenshotTarget' });
+		super('dev.theca11.multiobs.screenshot', { titleParam: 'screenshotTarget', irltkCompat: 'exclude' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('CurrentProgramSceneChanged', ({ sceneName }) => {
