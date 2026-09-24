@@ -80,8 +80,7 @@ function ingestSceneRowHtml(ingest = '', scene = '') {
 		<div class="field-label"></div>
 		<input type="text" name="ingestSceneIngest" value="${escapeHtml(ingest)}" list="ingestSceneIngestList-${nonce}" placeholder="Ingest" style="flex: 1 0 0; min-width: 0;">
 		<datalist id="ingestSceneIngestList-${nonce}" class="ingest-scene-ingest-list"></datalist>
-		<input type="text" name="ingestSceneScene" value="${escapeHtml(scene)}" list="ingestSceneSceneList-${nonce}" placeholder="Scene" style="flex: 1 0 0; min-width: 0;">
-		<datalist id="ingestSceneSceneList-${nonce}" class="ingest-scene-scene-list"></datalist>
+		<select name="ingestSceneScene" class="ingest-scene-scene-select" style="flex: 1 0 0; min-width: 0;"><option value="">Scene</option>${scene ? `<option value="${escapeHtml(scene)}" selected>${escapeHtml(scene)}</option>` : ''}</select>
 		<button class="down icon-button icon-down" title="Move down"></button>
 		<button class="up icon-button icon-up" title="Move up"></button>
 		<button class="remove icon-button icon-remove" title="Remove"></button>
@@ -99,11 +98,11 @@ function refreshIngestSceneDatalists(serverRow) {
 	if (!lists) return;
 	const rows = Array.from(serverRow.querySelectorAll('.ingest-scene-row'));
 	const usedIngests = new Set(rows.map((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim()).filter(Boolean));
-	const usedScenes = new Set(rows.map((r) => r.querySelector('input[name="ingestSceneScene"]').value.trim()).filter(Boolean));
+	const usedScenes = new Set(rows.map((r) => r.querySelector('[name="ingestSceneScene"]').value.trim()).filter(Boolean));
 
 	rows.forEach((r) => {
 		const currentIngest = r.querySelector('input[name="ingestSceneIngest"]').value.trim();
-		const currentScene = r.querySelector('input[name="ingestSceneScene"]').value.trim();
+		const currentScene = r.querySelector('[name="ingestSceneScene"]').value.trim();
 
 		const ingestOptions = lists.ingests
 		.filter((ingest) => ingest.obs_source_name === currentIngest || !usedIngests.has(ingest.obs_source_name))
@@ -115,14 +114,14 @@ function refreshIngestSceneDatalists(serverRow) {
 		});
 		r.querySelector('.ingest-scene-ingest-list')?.replaceChildren(...ingestOptions);
 
-		const sceneOptions = lists.scenes
+		const placeholder = new Option('Scene', '');
+		const sceneOptions = [...lists.scenes].reverse()
 		.filter((scene) => scene.sceneName === currentScene || !usedScenes.has(scene.sceneName))
-		.map((scene) => {
-			const option = document.createElement('option');
-			option.value = scene.sceneName;
-			return option;
-		});
-		r.querySelector('.ingest-scene-scene-list')?.replaceChildren(...sceneOptions);
+		.map((scene) => new Option(scene.sceneName, scene.sceneName));
+		if (currentScene && !sceneOptions.some((o) => o.value === currentScene)) sceneOptions.unshift(new Option(currentScene, currentScene));
+		const sceneSelect = r.querySelector('.ingest-scene-scene-select');
+		sceneSelect.replaceChildren(placeholder, ...sceneOptions);
+		sceneSelect.value = currentScene;
 	});
 }
 
@@ -321,7 +320,7 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 		const mapSection = e.target.closest('.server-row').querySelector('.server-ingest-scenes');
 		if (mapSection) mapSection.style.display = e.target.checked ? '' : 'none';
 	}
-	if (e.target.matches('input[name="ingestSceneIngest"], input[name="ingestSceneScene"]')) {
+	if (e.target.matches('input[name="ingestSceneIngest"], [name="ingestSceneScene"]')) {
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
 	}
 });
@@ -350,7 +349,7 @@ function serializeFormValue(formEl) {
 		ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
 		ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({
 			ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
-			scene: r.querySelector('input[name="ingestSceneScene"]').value,
+			scene: r.querySelector('[name="ingestSceneScene"]').value,
 		})).filter((m) => m.ingest || m.scene),
 	}));
 	Object.keys(rest).forEach((key) => {
@@ -382,18 +381,14 @@ window.onload = () => {
 	FormUtils.setFormValue(cloneForForm(), formEl);
 	renderTargetOptions();
 
-	window.opener.getGlobalLists().then(({ ingestsLists, scenesLists, connectedIngestSourceNames, connectedSceneNames }) => {
+	window.opener.getGlobalLists().then(({ ingestsLists, scenesLists, connectedIngestSourceNames }) => {
 		const ingestNames = new Map();
 		ingestsLists.flat().forEach((ingest) => ingestNames.set(ingest.obs_source_name, ingest.name));
-		const sceneNames = new Set(scenesLists.flat().map((scene) => scene.sceneName));
 		const connectedIngestNamesSet = new Set(connectedIngestSourceNames);
-		const connectedSceneNamesSet = new Set(connectedSceneNames);
 
 		Object.keys(globalSettings).forEach((key) => {
 			const ingestMatch = key.match(/^ingestAlias__(.+)$/);
 			if (ingestMatch && !ingestNames.has(ingestMatch[1])) ingestNames.set(ingestMatch[1], ingestMatch[1]);
-			const sceneMatch = key.match(/^sceneAlias__(.+)$/);
-			if (sceneMatch) sceneNames.add(sceneMatch[1]);
 		});
 
 		document.querySelector('#ingestAliasList').innerHTML = [...ingestNames.entries()]
@@ -416,23 +411,6 @@ window.onload = () => {
 							<option value="desktop">Desktop</option>
 						</select>
 						${canDelete ? `<button class="remove-alias icon-button icon-remove" title="Remove" data-alias-key="${escapeHtml(aliasKey)}" data-category-key="${escapeHtml(categoryKey)}"></button>` : ''}
-					</div>
-				</div>
-			`;
-		}).join('');
-
-		document.querySelector('#sceneAliasList').innerHTML = [...sceneNames]
-		.sort((a, b) => a.localeCompare(b))
-		.map((sceneName) => {
-			const safe = escapeHtml(sceneName);
-			const aliasKey = `sceneAlias__${sceneName}`;
-			const canDelete = !connectedSceneNamesSet.has(sceneName);
-			return `
-				<div class="sdpi-item">
-					<div class="sdpi-item-label" title="${safe}">${safe}</div>
-					<div class="sdpi-item-value" style="display: flex; gap: 4px; align-items: center;">
-						<input style="flex: 1 0 0; min-width: 0;" type="text" name="sceneAlias__${safe}" placeholder="${safe}">
-						${canDelete ? `<button class="remove-alias icon-button icon-remove" title="Remove" data-alias-key="${escapeHtml(aliasKey)}"></button>` : ''}
 					</div>
 				</div>
 			`;
@@ -466,7 +444,6 @@ function removeAliasRow(e) {
 	window.opener.sendGlobalSettingsToInspector(globalSettings);
 }
 document.querySelector('#ingestAliasList').addEventListener('click', removeAliasRow);
-document.querySelector('#sceneAliasList').addEventListener('click', removeAliasRow);
 
 function setTransferStatus(message) {
 	document.querySelector('#settingsTransferStatus').textContent = message;

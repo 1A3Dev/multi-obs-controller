@@ -1,13 +1,12 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractStatefulAction } from '../BaseWsAction';
 import { StateEnum } from '../StateEnum';
-import { globalSettings } from '../globalSettings';
 import { getScenesLists } from '../lists';
 import { ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
 
 type ActionSettings = { studioTarget?: 'preview' | 'program' } & Record<string, string | undefined>;
 type Scene = { sceneName: string };
-type FilteredScene = { sceneName: string, displayName: string };
+type FilteredScene = { sceneName: string };
 
 export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSettings, 'StudioModeStateChanged'> {
 	private _scenesCache: (string[] | undefined)[] = new Array(sockets.length).fill(undefined);
@@ -170,7 +169,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		const scenes = this._scenesCache[socketIdx] ?? [];
 		return scenes
 		.filter(sceneName => socketSettings?.[`exclude__${sceneName}`] !== 'true')
-		.map(sceneName => ({ sceneName, displayName: globalSettings[`sceneAlias__${sceneName}`] || sceneName }));
+		.map(sceneName => ({ sceneName }));
 	}
 
 	private _refreshUntouchedContexts(socketIdx: number, changedTarget: 'preview' | 'program') {
@@ -207,7 +206,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		$SD.setFeedback(context, this._dimFeedback({
 			status: isLive ? '● SELECTED' : '',
 			title,
-			value: filtered[idx].displayName,
+			value: filtered[idx].sceneName,
 			indicator: percent,
 		}, displayIdx));
 	}

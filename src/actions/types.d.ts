@@ -95,7 +95,6 @@ export type GlobalSettings = Partial<{
 	[key: `ingestProfileInstallPrompted__${string}`]: 'true',
 	[key: `ingestAlias__${string}`]: string,
 	[key: `ingestCategory__${string}`]: IngestCategory,
-	[key: `sceneAlias__${string}`]: string,
 	tvuEmail: string,
 	tvuPassword: string,
 	tvuAppKey: string,
