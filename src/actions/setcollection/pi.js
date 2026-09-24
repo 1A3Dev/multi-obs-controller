@@ -1,6 +1,6 @@
 import { mergeListsByKey, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.setcollection', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.setcollection', ({ payload }) => {
 	const { event, collectionsLists } = payload;
 
 	if (event === 'CollectionListLoaded') {

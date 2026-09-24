@@ -40,7 +40,7 @@ export class SceneItemTransformDialAction extends AbstractStatelessAction<Action
 	private _rotateTimers = new Map<string, NodeJS.Timeout>();
 
 	constructor() {
-		super('dev.theca11.multiobs.sceneitemtransformdial', { hideTargetIndicators: true });
+		super('uk.1a3.multiobs.sceneitemtransformdial', { hideTargetIndicators: true });
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;

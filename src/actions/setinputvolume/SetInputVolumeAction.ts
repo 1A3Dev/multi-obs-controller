@@ -6,7 +6,7 @@ type ActionSettings = { inputName: string, stepDb: string, maxDb: string }
 
 export class SetInputVolumeAction extends AbstractVolumeDialAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.setinputvolume', { titleParam: 'inputName' });
+		super('uk.1a3.multiobs.setinputvolume', { titleParam: 'inputName' });
 	}
 
 	protected resolveInputName(_socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {

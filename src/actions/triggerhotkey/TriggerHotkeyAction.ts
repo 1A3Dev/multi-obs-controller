@@ -5,7 +5,7 @@ type ActionSettings = { seq: string }
 
 export class TriggerHotkeyAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.triggerhotkey');
+		super('uk.1a3.multiobs.triggerhotkey');
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Partial<ActionSettings> | Record<string, never>): SingleRequestPayload<'TriggerHotkeyByKeySequence'> {

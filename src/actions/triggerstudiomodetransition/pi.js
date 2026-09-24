@@ -2,7 +2,7 @@ import { mergeListsByKey, socketIndicesOf } from '../../propertyInspector/utils.
 
 let transitionsLists = [];
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.triggerstudiomodetransition', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.triggerstudiomodetransition', ({ payload }) => {
 	const { event } = payload;
 
 	if (event === 'TransitionListLoaded') {

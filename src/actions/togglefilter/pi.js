@@ -14,7 +14,7 @@ function renderFilterOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.togglefilter', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.togglefilter', ({ payload }) => {
 	const { event, scenesLists, inputsLists, filterList } = payload;
 
 	if (event === 'SourceListLoaded') {

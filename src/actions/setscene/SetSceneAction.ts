@@ -12,7 +12,7 @@ export class SetSceneAction extends AbstractStatefulRequestAction<ActionSettings
 	private _studioModeEnabled: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.setscene', {
+		super('uk.1a3.multiobs.setscene', {
 			titleParam: 'sceneName',
 			statusEvent: ['CurrentProgramSceneChanged', 'CurrentPreviewSceneChanged', 'StudioModeStateChanged'],
 		});

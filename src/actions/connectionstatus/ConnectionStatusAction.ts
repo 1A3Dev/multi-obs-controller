@@ -8,7 +8,7 @@ const DISCONNECTED_IMG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://w
 export class ConnectionStatusAction extends AbstractStatelessAction<Record<string, never>> {
 
 	constructor() {
-		super('dev.theca11.multiobs.connectionstatus');
+		super('uk.1a3.multiobs.connectionstatus');
 	}
 
 	override async fetchState(): Promise<StateEnum.Active> {

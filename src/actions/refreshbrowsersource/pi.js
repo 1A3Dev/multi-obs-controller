@@ -1,6 +1,6 @@
 import { mergeListsByKey, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.refreshbrowsersource', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.refreshbrowsersource', ({ payload }) => {
 	const { event, inputsLists } = payload;
 
 	if (event === 'InputListLoaded') {

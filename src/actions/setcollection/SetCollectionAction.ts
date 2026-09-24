@@ -10,7 +10,7 @@ export class SetCollectionAction extends AbstractStatefulRequestAction<ActionSet
 	private _currentSceneCollectionName = new Array(sockets.length).fill(null);
 
 	constructor() {
-		super('dev.theca11.multiobs.setcollection', { titleParam: 'sceneCollectionName', statusEvent: 'CurrentSceneCollectionChanged' });
+		super('uk.1a3.multiobs.setcollection', { titleParam: 'sceneCollectionName', statusEvent: 'CurrentSceneCollectionChanged' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('CurrentSceneCollectionChanged', ({ sceneCollectionName }) => {

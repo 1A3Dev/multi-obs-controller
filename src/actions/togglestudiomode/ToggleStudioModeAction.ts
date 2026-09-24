@@ -9,7 +9,7 @@ export class ToggleStudioModeAction extends AbstractStatefulRequestAction<Action
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.togglestudiomode', { statusEvent: 'StudioModeStateChanged' });
+		super('uk.1a3.multiobs.togglestudiomode', { statusEvent: 'StudioModeStateChanged' });
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('StudioModeStateChanged', ({ studioModeEnabled }) => {

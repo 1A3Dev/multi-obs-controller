@@ -26,7 +26,7 @@ module.exports = {
 	target: 'web',
 	output: {
 		filename: 'plugin/[name].js',
-		path: __dirname + '/build/dev.theca11.multiobs.sdPlugin',
+		path: __dirname + '/build/uk.1a3.multiobs.sdPlugin',
 		clean: true,
 	},
 	optimization: {

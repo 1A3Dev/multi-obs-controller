@@ -47,7 +47,7 @@ export class MediaInputControlDialAction extends AbstractStatelessAction<ActionS
 	private _lastRotateAt = new Map<string, number>();
 
 	constructor() {
-		super('dev.theca11.multiobs.mediainputcontroldial', { titleParam: 'inputName', hideTargetIndicators: true });
+		super('uk.1a3.multiobs.mediainputcontroldial', { titleParam: 'inputName', hideTargetIndicators: true });
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;

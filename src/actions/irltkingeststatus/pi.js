@@ -1,6 +1,6 @@
 import { mergeListsByKey, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.irltkingeststatus', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingeststatus', ({ payload }) => {
 	const { event, ingestsLists, pagingActive } = payload;
 
 	if (event === 'IngestListLoaded') {

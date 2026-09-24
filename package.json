@@ -3,10 +3,10 @@
 	"version": "0.8.3",
 	"description": "Multi OBS Controller plugin allows you to remotely control multiple OBS Studio instances in an easily synchronous way.",
 	"scripts": {
-		"prepare-dev": "symlink-dir ./build/dev.theca11.multiobs.sdPlugin %APPDATA%/Elgato/StreamDeck/Plugins/dev.theca11.multiobs.sdPlugin",
+		"prepare-dev": "symlink-dir ./build/uk.1a3.multiobs.sdPlugin %APPDATA%/Elgato/StreamDeck/Plugins/uk.1a3.multiobs.sdPlugin",
 		"dev": "webpack --watch --mode=development",
 		"build": "webpack --mode=production",
-		"package": "cd ./dist && npx trash dev.theca11.multiobs.streamDeckPlugin && ./DistributionTool.exe -b -i ../build/dev.theca11.multiobs.sdPlugin -o .",
+		"package": "cd ./dist && npx trash uk.1a3.multiobs.streamDeckPlugin && ./DistributionTool.exe -b -i ../build/uk.1a3.multiobs.sdPlugin -o .",
 		"release": "npm run package",
 		"lint": "eslint .",
 		"lint-fix": "eslint --fix ."

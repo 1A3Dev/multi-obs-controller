@@ -20,7 +20,7 @@ export class StreamStatusAction extends AbstractStatefulAction<ActionSettings, '
 	private _timerInterval: NodeJS.Timeout | undefined;
 
 	constructor() {
-		super('dev.theca11.multiobs.streamstatus', { statusEvent: 'StreamStateChanged' });
+		super('uk.1a3.multiobs.streamstatus', { statusEvent: 'StreamStateChanged' });
 		this._attachListenersForTimer();
 		onIngestsUpdated(socketIdx => this._refreshIrltkStatus(socketIdx));
 	}

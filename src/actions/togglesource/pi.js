@@ -14,7 +14,7 @@ function renderSourceOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.togglesource', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.togglesource', ({ payload }) => {
 	const { event, scenesLists, sourceList } = payload;
 
 	if (event === 'SceneListLoaded') {
@@ -41,7 +41,7 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.togglesource', ({ payload })
 	}
 });
 
-$PI.onDidReceiveSettings('dev.theca11.multiobs.togglesource', ({ payload: receiveSettingsPayload }) => {
+$PI.onDidReceiveSettings('uk.1a3.multiobs.togglesource', ({ payload: receiveSettingsPayload }) => {
 	document.querySelectorAll('.multiaction-toggle-field').forEach((el) => {
 		el.style.display = receiveSettingsPayload.isInMultiAction ? '' : 'none';
 	});

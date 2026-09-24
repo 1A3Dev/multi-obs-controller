@@ -3,7 +3,7 @@
 	"Name": "Multi OBS Controller",
 	"Description": "Control one or multiple OBS Studio instances at the same time. Easily keep them synchronized or manage them individually. Stream, record, set current scene, toggle source visibility, mute audio, trigger hotkeys and much more. Advanced actions support any OBS Websockets protocol request.",
 	"Category": "Multi OBS Controller",
-	"dev.theca11.multiobs.togglestream": {
+	"uk.1a3.multiobs.togglestream": {
 		"Name": "Stream",
 		"Tooltip": "Start/stop streaming",
 		"States": [
@@ -15,7 +15,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglerecord": {
+	"uk.1a3.multiobs.togglerecord": {
 		"Name": "Record",
 		"Tooltip": "Start/stop recording",
 		"States": [
@@ -27,7 +27,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.pauserecord": {
+	"uk.1a3.multiobs.pauserecord": {
 		"Name": "Record Pause",
 		"Tooltip": "Pause/resume recording",
 		"States": [
@@ -39,11 +39,11 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.createrecordchapter": {
+	"uk.1a3.multiobs.createrecordchapter": {
 		"Name": "Chapter Marker",
 		"Tooltip": "Add a chapter marker to an active recording"
 	},
-	"dev.theca11.multiobs.togglevirtualcam": {
+	"uk.1a3.multiobs.togglevirtualcam": {
 		"Name": "Virtual Camera",
 		"Tooltip": "Start/stop virtual camera",
 		"States": [
@@ -55,7 +55,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglereplaybuffer": {
+	"uk.1a3.multiobs.togglereplaybuffer": {
 		"Name": "Replay Buffer",
 		"Tooltip": "Start/stop replay buffer",
 		"States": [
@@ -67,15 +67,15 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.savereplaybuffer": {
+	"uk.1a3.multiobs.savereplaybuffer": {
 		"Name": "Save Replay Buffer",
 		"Tooltip": "Save currently active replay buffer"
 	},
-	"dev.theca11.multiobs.setscene": {
+	"uk.1a3.multiobs.setscene": {
 		"Name": "Scene",
 		"Tooltip": "Set current scene"
 	},
-	"dev.theca11.multiobs.togglesource": {
+	"uk.1a3.multiobs.togglesource": {
 		"Name": "Source Visibility",
 		"Tooltip": "Show/hide source",
 		"States": [
@@ -87,15 +87,15 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.setcollection": {
+	"uk.1a3.multiobs.setcollection": {
 		"Name": "Scene Collection",
 		"Tooltip": "Set current scene collection"
 	},
-	"dev.theca11.multiobs.setprofile": {
+	"uk.1a3.multiobs.setprofile": {
 		"Name": "Profile",
 		"Tooltip": "Set current profile"
 	},
-	"dev.theca11.multiobs.toggleinputmute": {
+	"uk.1a3.multiobs.toggleinputmute": {
 		"Name": "Audio Mute",
 		"Tooltip": "Mute/unmute audio source",
 		"States": [
@@ -107,7 +107,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.mediainputcontrol": {
+	"uk.1a3.multiobs.mediainputcontrol": {
 		"Name": "Media Source Control",
 		"Tooltip": "Control media source playback",
 		"States": [
@@ -125,7 +125,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglefilter": {
+	"uk.1a3.multiobs.togglefilter": {
 		"Name": "Filter",
 		"Tooltip": "Enable/disable scene/source filter",
 		"States": [
@@ -137,7 +137,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglestudiomode": {
+	"uk.1a3.multiobs.togglestudiomode": {
 		"Name": "Studio Mode",
 		"Tooltip": "Enable/disable studio mode",
 		"States": [
@@ -149,35 +149,35 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.triggerstudiomodetransition": {
+	"uk.1a3.multiobs.triggerstudiomodetransition": {
 		"Name": "Studio Mode Transition",
 		"Tooltip": "Trigger studio mode transition"
 	},
-	"dev.theca11.multiobs.screenshot": {
+	"uk.1a3.multiobs.screenshot": {
 		"Name": "Screenshot",
 		"Tooltip": "Take screenshot of output or specific scene/source"
 	},
-	"dev.theca11.multiobs.triggerhotkey": {
+	"uk.1a3.multiobs.triggerhotkey": {
 		"Name": "Hotkey Sequence",
 		"Tooltip": "Trigger action associated with a hotkey sequence"
 	},
-	"dev.theca11.multiobs.refreshbrowsersource": {
+	"uk.1a3.multiobs.refreshbrowsersource": {
 		"Name": "Refresh Browser Source",
 		"Tooltip": "Refresh cache of a browser source page"
 	},
-	"dev.theca11.multiobs.refreshcapturedevice": {
+	"uk.1a3.multiobs.refreshcapturedevice": {
 		"Name": "Refresh Capture Device",
 		"Tooltip": "Disable & re-enable a video capture device"
 	},
-	"dev.theca11.multiobs.stats": {
+	"uk.1a3.multiobs.stats": {
 		"Name": "Stats",
 		"Tooltip": "Get general/stream/record stats"
 	},
-	"dev.theca11.multiobs.rawrequest": {
+	"uk.1a3.multiobs.rawrequest": {
 		"Name": "Raw WS Request",
 		"Tooltip": "[Advanced] Send a raw WS request"
 	},
-	"dev.theca11.multiobs.rawbatchrequest": {
+	"uk.1a3.multiobs.rawbatchrequest": {
 		"Name": "Raw WS Batch Request",
 		"Tooltip": "[Advanced] Send raw WS batch request"
 	},

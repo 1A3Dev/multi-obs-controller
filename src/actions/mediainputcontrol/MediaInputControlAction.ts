@@ -9,7 +9,7 @@ type ActionSettings = { inputName: string, action: 'play_stop' | 'play_pause' | 
 export class MediaInputControlAction extends AbstractStatefulRequestAction<ActionSettings, 'MediaInputPlaybackStarted' | 'MediaInputPlaybackEnded'> {
 
 	constructor() {
-		super('dev.theca11.multiobs.mediainputcontrol', {
+		super('uk.1a3.multiobs.mediainputcontrol', {
 			titleParam: 'inputName',
 			statusEvent: ['MediaInputPlaybackStarted', 'MediaInputPlaybackEnded', 'MediaInputActionTriggered'],
 		});

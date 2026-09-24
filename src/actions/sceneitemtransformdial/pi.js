@@ -26,7 +26,7 @@ function renderSourceOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.sceneitemtransformdial', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.sceneitemtransformdial', ({ payload }) => {
 	const { event, scenesLists, sourceList } = payload;
 
 	if (event === 'SceneListLoaded') {

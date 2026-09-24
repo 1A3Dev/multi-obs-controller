@@ -5,7 +5,7 @@ import { KeyUpData } from '../types';
 
 export class PreviousProfileAction extends Action {
 	constructor() {
-		super('dev.theca11.multiobs.previousprofile');
+		super('uk.1a3.multiobs.previousprofile');
 		registerGlobalListsHandler(this);
 
 		this.onKeyUp(({ context, device }: KeyUpData<Record<string, never>>) => {

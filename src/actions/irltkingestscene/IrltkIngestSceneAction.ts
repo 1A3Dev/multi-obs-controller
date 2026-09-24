@@ -14,7 +14,7 @@ export class IrltkIngestSceneAction extends AbstractStatefulRequestAction<Action
 	private _studioModeEnabled: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestscene', {
+		super('uk.1a3.multiobs.irltkingestscene', {
 			irltkCompat: 'only',
 			statusEvent: ['CurrentProgramSceneChanged', 'CurrentPreviewSceneChanged', 'StudioModeStateChanged'],
 		});

@@ -3,7 +3,7 @@
 	"Name": "Multi OBS Controller",
 	"Description": "Controla una o varias instancias de OBS Studio a la vez. Mantenlas sincronizadas de manera sencilla o gestiónalas individualmente. Transmite, graba, cambia la escena actual, modifica la visibilidad de una fuente, silencia audio, desencadena un atajo y mucho más. Acciones avanzadas permiten cualquier petición compatible con el protocolo de OBS Websockets.",
 	"Category": "Multi OBS Controller",
-	"dev.theca11.multiobs.togglestream": {
+	"uk.1a3.multiobs.togglestream": {
 		"Name": "Transmitir",
 		"Tooltip": "Iniciar/detener transmisión",
 		"States": [
@@ -15,7 +15,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglerecord": {
+	"uk.1a3.multiobs.togglerecord": {
 		"Name": "Grabar",
 		"Tooltip": "Iniciar/detener grabación",
 		"States": [
@@ -27,7 +27,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.pauserecord": {
+	"uk.1a3.multiobs.pauserecord": {
 		"Name": "Pausar grabación",
 		"Tooltip": "Pausar/reanudar grabación",
 		"States": [
@@ -39,11 +39,11 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.createrecordchapter": {
+	"uk.1a3.multiobs.createrecordchapter": {
 		"Name": "Marcador de capítulo",
 		"Tooltip": "Añadir un marcador de capítulo a una grabación en activo"
 	},
-	"dev.theca11.multiobs.togglevirtualcam": {
+	"uk.1a3.multiobs.togglevirtualcam": {
 		"Name": "Cámara virtual",
 		"Tooltip": "Iniciar/detener cámara virtual",
 		"States": [
@@ -55,7 +55,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglereplaybuffer": {
+	"uk.1a3.multiobs.togglereplaybuffer": {
 		"Name": "Búfer de repetición",
 		"Tooltip": "Iniciar/detener búfer de repetición",
 		"States": [
@@ -67,15 +67,15 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.savereplaybuffer": {
+	"uk.1a3.multiobs.savereplaybuffer": {
 		"Name": "Guardar búfer de repetición",
 		"Tooltip": "Guardar el búfer de repetición activo"
 	},
-	"dev.theca11.multiobs.setscene": {
+	"uk.1a3.multiobs.setscene": {
 		"Name": "Escena",
 		"Tooltip": "Cambiar escena actual"
 	},
-	"dev.theca11.multiobs.togglesource": {
+	"uk.1a3.multiobs.togglesource": {
 		"Name": "Visibilidad de fuente",
 		"Tooltip": "Mostrar/ocultar fuente",
 		"States": [
@@ -87,15 +87,15 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.setcollection": {
+	"uk.1a3.multiobs.setcollection": {
 		"Name": "Colección de escenas",
 		"Tooltip": "Cambiar colección de escenas actual"
 	},
-	"dev.theca11.multiobs.setprofile": {
+	"uk.1a3.multiobs.setprofile": {
 		"Name": "Perfil",
 		"Tooltip": "Cambiar el perfil actual"
 	},
-	"dev.theca11.multiobs.toggleinputmute": {
+	"uk.1a3.multiobs.toggleinputmute": {
 		"Name": "Silenciar audio",
 		"Tooltip": "Silenciar/no silenciar fuente de audio",
 		"States": [
@@ -107,7 +107,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.mediainputcontrol": {
+	"uk.1a3.multiobs.mediainputcontrol": {
 		"Name": "Control de fuente multimedia",
 		"Tooltip": "Controlar reproducción de fuente multimedia",
 		"States": [
@@ -125,7 +125,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglefilter": {
+	"uk.1a3.multiobs.togglefilter": {
 		"Name": "Filtro",
 		"Tooltip": "Habilitar/deshabilitar filtro de escena o fuente",
 		"States": [
@@ -137,7 +137,7 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.togglestudiomode": {
+	"uk.1a3.multiobs.togglestudiomode": {
 		"Name": "Modo estudio",
 		"Tooltip": "Habilitar/deshabilitar modo estudio",
 		"States": [
@@ -149,35 +149,35 @@
 			}
 		]
 	},
-	"dev.theca11.multiobs.triggerstudiomodetransition": {
+	"uk.1a3.multiobs.triggerstudiomodetransition": {
 		"Name": "Transición de modo estudio",
 		"Tooltip": "Realizar una transición en el modo estudio de vista previa a programa"
 	},
-	"dev.theca11.multiobs.screenshot": {
+	"uk.1a3.multiobs.screenshot": {
 		"Name": "Captura",
 		"Tooltip": "Tomar una captura de la salida actual o de una escena/fuente específica"
 	},
-	"dev.theca11.multiobs.triggerhotkey": {
+	"uk.1a3.multiobs.triggerhotkey": {
 		"Name": "Atajo",
 		"Tooltip": "Desencadenar una acción asociada con un atajo/secuencia de teclas"
 	},
-	"dev.theca11.multiobs.refreshbrowsersource": {
+	"uk.1a3.multiobs.refreshbrowsersource": {
 		"Name": "Actualizar fuente de navegador",
 		"Tooltip": "Actualizar el caché de una página de navegador"
 	},
-	"dev.theca11.multiobs.refreshcapturedevice": {
+	"uk.1a3.multiobs.refreshcapturedevice": {
 		"Name": "Actualizar dispositivo de captura",
 		"Tooltip": "Deshabilitar y rehabilitar un dispositivo de captura de vídeo"
 	},
-	"dev.theca11.multiobs.stats": {
+	"uk.1a3.multiobs.stats": {
 		"Name": "Estadísticas",
 		"Tooltip": "Mostrar estadísticas (generales/transmisión/grabación)"
 	},
-	"dev.theca11.multiobs.rawrequest": {
+	"uk.1a3.multiobs.rawrequest": {
 		"Name": "Petición WS",
 		"Tooltip": "[Avanzado] Enviar una petición WS de bajo nivel"
 	},
-	"dev.theca11.multiobs.rawbatchrequest": {
+	"uk.1a3.multiobs.rawbatchrequest": {
 		"Name": "Petición WS de grupo",
 		"Tooltip": "[Avanzado] Enviar una petición WS de grupo de bajo nivel"
 	},

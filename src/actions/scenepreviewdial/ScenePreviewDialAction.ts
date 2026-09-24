@@ -18,7 +18,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 	private _selectedSceneCache = new Map<string, (string | undefined)[]>();
 
 	constructor() {
-		super('dev.theca11.multiobs.scenepreviewdial', { statusEvent: 'StudioModeStateChanged', hideTargetIndicators: true });
+		super('uk.1a3.multiobs.scenepreviewdial', { statusEvent: 'StudioModeStateChanged', hideTargetIndicators: true });
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;

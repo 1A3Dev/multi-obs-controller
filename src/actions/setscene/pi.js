@@ -1,6 +1,6 @@
 import { mergeListsByKey, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.setscene', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.setscene', ({ payload }) => {
 	const { event, scenesLists } = payload;
 
 	if (event === 'SceneListLoaded') {
