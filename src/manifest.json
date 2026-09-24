@@ -1,11 +1,11 @@
 {
 	"SDKVersion": 3,
-	"Name": "Multi OBS Controller",
+	"Name": "Multi OBS Controller (IRLTK)",
 	"Description": "Control one or multiple OBS Studio instances at the same time. Easily keep them synchronized or manage them individually. Stream, record, set current scene, toggle source visibility, mute audio, trigger hotkeys and much more. Advanced actions support any OBS Websockets protocol request.",
 	"UUID": "uk.1a3.multiobs",
 	"Author": "the_ca11",
 	"Version": "0.8.3",
-	"URL": "https://theca11.github.io/multi-obs-controller",
+	"URL": "https://github.com/1A3Dev/multi-obs-controller/tree/master-1a3",
 	"Icon": "assets/pluginIcon",
 	"CodePath": "plugin/app.html",
 	"PropertyInspectorPath": "propertyInspector/inspector.html",
@@ -23,7 +23,7 @@
 			"MinimumVersion": "10"
 		}
 	],
-	"Category": "Multi OBS Controller",
+	"Category": "Multi OBS Controller (IRLTK)",
 	"CategoryIcon": "assets/categoryIcon",
 	"Profiles": [
 		{

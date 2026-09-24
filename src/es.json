@@ -1,8 +1,8 @@
 {
 	"Author": "the_ca11",
-	"Name": "Multi OBS Controller",
+	"Name": "Multi OBS Controller (IRLTK)",
 	"Description": "Controla una o varias instancias de OBS Studio a la vez. Mantenlas sincronizadas de manera sencilla o gestiónalas individualmente. Transmite, graba, cambia la escena actual, modifica la visibilidad de una fuente, silencia audio, desencadena un atajo y mucho más. Acciones avanzadas permiten cualquier petición compatible con el protocolo de OBS Websockets.",
-	"Category": "Multi OBS Controller",
+	"Category": "Multi OBS Controller (IRLTK)",
 	"uk.1a3.multiobs.togglestream": {
 		"Name": "Transmitir",
 		"Tooltip": "Iniciar/detener transmisión",
