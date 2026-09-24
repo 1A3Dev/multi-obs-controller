@@ -465,6 +465,34 @@ function removeAliasRow(e) {
 document.querySelector('#ingestAliasList').addEventListener('click', removeAliasRow);
 document.querySelector('#sceneAliasList').addEventListener('click', removeAliasRow);
 
+function setTransferStatus(message) {
+	document.querySelector('#settingsTransferStatus').textContent = message;
+}
+
+document.querySelector('#exportSettings').addEventListener('click', (e) => {
+	e.preventDefault();
+	const textEl = document.querySelector('#settingsTransferText');
+	textEl.value = JSON.stringify(globalSettings);
+	textEl.select();
+	setTransferStatus('Copy the text above (Ctrl+C) and import it in the other install.');
+});
+
+document.querySelector('#importSettings').addEventListener('click', (e) => {
+	e.preventDefault();
+	let imported;
+	try {
+		imported = JSON.parse(document.querySelector('#settingsTransferText').value);
+		if (!imported || typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Not an object');
+	}
+	catch {
+		setTransferStatus('Invalid settings text.');
+		return;
+	}
+	globalSettings = imported;
+	window.opener.sendGlobalSettingsToInspector(globalSettings);
+	location.reload();
+});
+
 document.querySelector('#reconnect').addEventListener('click', (e) => {
 	e.preventDefault();
 	window.opener.reconnect();

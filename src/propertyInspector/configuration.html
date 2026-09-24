@@ -267,6 +267,19 @@
 							<button id="addServer" style="margin: 0 0 0 auto">Add server</button>
 						</div>
 					</div>
+					<details class="settings-transfer">
+						<summary>Export / import settings</summary>
+						<p>
+							Copy your settings (servers, passwords, aliases, etc.) as text to move them to another
+							install, e.g. from the original plugin. Passwords are included in plain text.
+						</p>
+						<textarea id="settingsTransferText" rows="4" style="width: 100%" spellcheck="false" placeholder="Exported settings appear here. To import, paste them here and click Import."></textarea>
+						<div style="display: flex; gap: 8px; margin: 4px 0 8px;">
+							<button id="exportSettings">Export</button>
+							<button id="importSettings">Import</button>
+						</div>
+						<p id="settingsTransferStatus"></p>
+					</details>
 					<button id="reconnect">
 						If you're having issues, click here to force a plugin ↔ OBS reinitialization
 						<svg
