@@ -80,7 +80,8 @@ function ingestSceneRowHtml(ingest = '', scene = '') {
 		<div class="field-label"></div>
 		<input type="text" name="ingestSceneIngest" value="${escapeHtml(ingest)}" list="ingestSceneIngestList-${nonce}" placeholder="Ingest" style="flex: 1 0 0; min-width: 0;">
 		<datalist id="ingestSceneIngestList-${nonce}" class="ingest-scene-ingest-list"></datalist>
-		<select name="ingestSceneScene" class="ingest-scene-scene-select" style="flex: 1 0 0; min-width: 0;"><option value="">Scene</option>${scene ? `<option value="${escapeHtml(scene)}" selected>${escapeHtml(scene)}</option>` : ''}</select>
+		<input type="text" name="ingestSceneScene" value="${escapeHtml(scene)}" list="ingestSceneSceneList-${nonce}" placeholder="Scene" style="flex: 1 0 0; min-width: 0;">
+		<datalist id="ingestSceneSceneList-${nonce}" class="ingest-scene-scene-list"></datalist>
 		<button class="down icon-button icon-down" title="Move down"></button>
 		<button class="up icon-button icon-up" title="Move up"></button>
 		<button class="remove icon-button icon-remove" title="Remove"></button>
@@ -98,11 +99,11 @@ function refreshIngestSceneDatalists(serverRow) {
 	if (!lists) return;
 	const rows = Array.from(serverRow.querySelectorAll('.ingest-scene-row'));
 	const usedIngests = new Set(rows.map((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim()).filter(Boolean));
-	const usedScenes = new Set(rows.map((r) => r.querySelector('[name="ingestSceneScene"]').value.trim()).filter(Boolean));
+	const usedScenes = new Set(rows.map((r) => r.querySelector('input[name="ingestSceneScene"]').value.trim()).filter(Boolean));
 
 	rows.forEach((r) => {
 		const currentIngest = r.querySelector('input[name="ingestSceneIngest"]').value.trim();
-		const currentScene = r.querySelector('[name="ingestSceneScene"]').value.trim();
+		const currentScene = r.querySelector('input[name="ingestSceneScene"]').value.trim();
 
 		const ingestOptions = lists.ingests
 		.filter((ingest) => ingest.obs_source_name === currentIngest || !usedIngests.has(ingest.obs_source_name))
@@ -114,14 +115,14 @@ function refreshIngestSceneDatalists(serverRow) {
 		});
 		r.querySelector('.ingest-scene-ingest-list')?.replaceChildren(...ingestOptions);
 
-		const placeholder = new Option('Scene', '');
 		const sceneOptions = [...lists.scenes].reverse()
 		.filter((scene) => scene.sceneName === currentScene || !usedScenes.has(scene.sceneName))
-		.map((scene) => new Option(scene.sceneName, scene.sceneName));
-		if (currentScene && !sceneOptions.some((o) => o.value === currentScene)) sceneOptions.unshift(new Option(currentScene, currentScene));
-		const sceneSelect = r.querySelector('.ingest-scene-scene-select');
-		sceneSelect.replaceChildren(placeholder, ...sceneOptions);
-		sceneSelect.value = currentScene;
+		.map((scene) => {
+			const option = document.createElement('option');
+			option.value = scene.sceneName;
+			return option;
+		});
+		r.querySelector('.ingest-scene-scene-list')?.replaceChildren(...sceneOptions);
 	});
 }
 
@@ -320,7 +321,7 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 		const mapSection = e.target.closest('.server-row').querySelector('.server-ingest-scenes');
 		if (mapSection) mapSection.style.display = e.target.checked ? '' : 'none';
 	}
-	if (e.target.matches('input[name="ingestSceneIngest"], [name="ingestSceneScene"]')) {
+	if (e.target.matches('input[name="ingestSceneIngest"], input[name="ingestSceneScene"]')) {
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
 	}
 });
@@ -349,7 +350,7 @@ function serializeFormValue(formEl) {
 		ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
 		ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({
 			ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
-			scene: r.querySelector('[name="ingestSceneScene"]').value,
+			scene: r.querySelector('input[name="ingestSceneScene"]').value,
 		})).filter((m) => m.ingest || m.scene),
 	}));
 	Object.keys(rest).forEach((key) => {
