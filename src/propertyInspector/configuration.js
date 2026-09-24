@@ -356,6 +356,9 @@ function serializeFormValue(formEl) {
 	Object.keys(rest).forEach((key) => {
 		if (/^(ip|port|pwd)\d+$/.test(key)) delete rest[key];
 	});
+	formEl.querySelectorAll('input[type="checkbox"][name]').forEach((el) => {
+		if (!el.closest('.server-row') && !(el.name in rest)) rest[el.name] = undefined;
+	});
 	return rest;
 }
 
