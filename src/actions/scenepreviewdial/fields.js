@@ -8,7 +8,7 @@ export const fields = `
 </div>
 <div class="sdpi-item" title="${$PI.localize('Scene exclude tooltip')}">
 	<div class="sdpi-item-label" data-i18n>${$PI.localize('Scenes')}</div>
-	<div class="sdpi-item-value" style="font-size: 11px; opacity: 0.7; align-items: center;" data-i18n>${$PI.localize('Exclude scenes from the dial. Display aliases are set in the General Configuration')}</div>
+	<div class="sdpi-item-value" style="font-size: 11px; opacity: 0.7; align-items: center;" data-i18n>${$PI.localize('Exclude scenes from the dial')}</div>
 </div>
 <div class="scene-config-list"></div>
 `;

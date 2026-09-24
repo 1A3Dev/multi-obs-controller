@@ -25,11 +25,10 @@ export function registerGlobalListsHandler(action: InstanceType<typeof Action>):
 			});
 			const scenesLists = liveScenesLists.map((scenes, socketIdx) => {
 				if (scenes.length) return scenes;
-				return getLastKnownScenes(socketIdx).filter(({ sceneName }) => !!globalSettings[`sceneAlias__${sceneName}`]);
+				return getLastKnownScenes(socketIdx);
 			});
 			const connectedIngestSourceNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveIngestsLists[socketIdx].map(i => i.obs_source_name) : []);
-			const connectedSceneNames = sockets.flatMap((socket, socketIdx) => socket.isConnected ? liveScenesLists[socketIdx].map(s => s.sceneName) : []);
-			$SD.sendToPropertyInspector(context, { event: 'GlobalListsLoaded', ingestsLists, scenesLists, connectedIngestSourceNames, connectedSceneNames }, actionUUID);
+			$SD.sendToPropertyInspector(context, { event: 'GlobalListsLoaded', ingestsLists, scenesLists, connectedIngestSourceNames }, actionUUID);
 		}
 	});
 }
