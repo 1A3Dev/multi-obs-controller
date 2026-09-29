@@ -305,11 +305,10 @@
 				<div class="section">
 					<div class="sdpi-heading">IRLToolkit Ingests</div>
 					<p>
-						Optional display name override and category for each IRLToolkit ingest. The
-						alias is shown wherever an ingest name appears (e.g. the Ingest Volume dial).
-						The category groups dynamic ingest position targeting (Backpack, then Phone,
-						then Desktop, then uncategorized). Both apply everywhere, matched by the ingest's
-						OBS source name so they survive IRLToolkit renames.
+						Optional display name override and category for each IRLToolkit ingest, matched by
+						ingest name (as shown in IRLToolkit, which doesn't support renaming ingests). Applies
+						across every server; add a per-server override under a server's "Managed by IRLToolkit"
+						settings above if a particular server needs something different for the same name.
 					</p>
 					<div id="ingestAliasList"></div>
 				</div>

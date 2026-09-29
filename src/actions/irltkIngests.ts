@@ -1,6 +1,6 @@
 import { sockets } from '../plugin/sockets';
 import { globalSettings, resolveServers } from './globalSettings';
-import { IngestCategory } from './types';
+import { IngestCategory, ServerConfig } from './types';
 
 export type IrltkIngest = {
 	id: string;
@@ -198,8 +198,8 @@ function sortIngestsOnlineFirst(ingests: IrltkIngest[], ingestThresholds: Ingest
 const CATEGORY_ORDER: Record<IngestCategory, number> = { backpack: 1, phone: 2, desktop: 3 };
 const UNCATEGORIZED_RANK = 9;
 
-function getIngestCategoryRank(ingest: IrltkIngest): number {
-	const category = globalSettings[`ingestCategory__${ingest.obs_source_name}`];
+function getIngestCategoryRank(ingest: IrltkIngest, server: ServerConfig | undefined): number {
+	const category = server?.ingestCategory?.[ingest.name] ?? globalSettings[`ingestCategory__${ingest.name}`];
 	return category ? CATEGORY_ORDER[category] ?? UNCATEGORIZED_RANK : UNCATEGORIZED_RANK;
 }
 
@@ -211,8 +211,8 @@ export function sortIngests(ingests: IrltkIngest[], socketIdx?: number): IrltkIn
 	.filter((name): name is string => !!name);
 
 	return [...ingests].sort((a, b) => {
-		const aCategory = getIngestCategoryRank(a);
-		const bCategory = getIngestCategoryRank(b);
+		const aCategory = getIngestCategoryRank(a, server);
+		const bCategory = getIngestCategoryRank(b, server);
 		if (aCategory !== bCategory) return aCategory - bCategory;
 
 		const aPin = pinned.indexOf(a.name.trim().toLowerCase());
@@ -223,7 +223,7 @@ export function sortIngests(ingests: IrltkIngest[], socketIdx?: number): IrltkIn
 			return aPin - bPin;
 		}
 
-		return getIngestDisplayName(a).localeCompare(getIngestDisplayName(b));
+		return getIngestDisplayName(a, server).localeCompare(getIngestDisplayName(b, server));
 	});
 }
 
@@ -250,6 +250,6 @@ export function hasIngestTarget(settings: IrltkTargetSettings): boolean {
 	return settings.ingestTargetMode === 'dynamic' ? !!settings.ingestIndex : !!settings.ingestSourceName;
 }
 
-export function getIngestDisplayName(ingest: IrltkIngest): string {
-	return globalSettings[`ingestAlias__${ingest.obs_source_name}`] || ingest.name;
+export function getIngestDisplayName(ingest: IrltkIngest, server?: ServerConfig): string {
+	return server?.ingestAlias?.[ingest.name] || globalSettings[`ingestAlias__${ingest.name}`] || ingest.name;
 }
