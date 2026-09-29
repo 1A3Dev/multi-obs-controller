@@ -1,6 +1,7 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractStatelessRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
+import { globalSettings, resolveServers } from '../globalSettings';
 import { getIngestDisplayName, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestOnline, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { getTvuBatteryPercent, onTvuBatteryUpdated, setTvuDeviceLink } from '../tvuBattery';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
@@ -107,7 +108,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		}
 
 		const ingest = resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx));
-		const name = ingest ? getIngestDisplayName(ingest) : '';
+		const name = ingest ? getIngestDisplayName(ingest, resolveServers(globalSettings)[displayIdx]) : '';
 		const bitrate = ingest && isIngestOnline(ingest, getThresholds(displayIdx)) ? `${ingest.router_bitrate.toLocaleString('en-US')} kbps` : '';
 		const batteryPercent = socketSettings.tvuDevice ? getTvuBatteryPercent(socketSettings.tvuDevice.trim()) : undefined;
 		const battery = batteryPercent !== undefined ? `${batteryPercent}%` : '';

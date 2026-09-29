@@ -75,6 +75,8 @@ export type ServerConfig = {
 	ingestPinned?: string | string[],
 	ingestSceneMap?: { ingest?: string, scene?: string }[],
 	lastKnownScenes?: string[],
+	ingestAlias?: Record<string, string>,
+	ingestCategory?: Record<string, IngestCategory>,
 }
 export type IngestCategory = 'backpack' | 'phone' | 'desktop';
 export type GlobalSettings = Partial<{

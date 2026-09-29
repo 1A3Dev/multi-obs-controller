@@ -1,5 +1,6 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractVolumeDialAction } from '../AbstractVolumeDialAction';
+import { globalSettings, resolveServers } from '../globalSettings';
 import { getIngestDisplayName, getIngests, getThresholds, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { SocketSettings } from '../types';
 
@@ -21,7 +22,7 @@ export class IrltkIngestVolumeAction extends AbstractVolumeDialAction<ActionSett
 	protected override resolveDisplayName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {
 		if (!socketSettings) return undefined;
 		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx));
-		return ingest && getIngestDisplayName(ingest);
+		return ingest && getIngestDisplayName(ingest, resolveServers(globalSettings)[socketIdx]);
 	}
 
 	override async onPropertyInspectorReady({ context, action }: { context: string; action: string; }): Promise<void> {

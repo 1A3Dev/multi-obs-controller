@@ -2,7 +2,8 @@ import { FormUtils } from './utils.js';
 
 const MAX_SERVERS = 6;
 
-// Per-server live ingest/scene lists, used to (re)populate the Ingest -> Scene Mapping datalists
+// Per-server live ingest/scene lists, used to (re)populate the Ingest -> Scene Mapping and Ingest
+// Alias/Category Override datalists
 const ingestSceneListsByServer = new WeakMap();
 
 function escapeHtml(str) {
@@ -89,6 +90,57 @@ function ingestSceneRowHtml(ingest = '', scene = '') {
 	`;
 }
 
+const INGEST_CATEGORIES = [
+	['', 'Uncategorized'],
+	['backpack', 'Backpack'],
+	['phone', 'Phone'],
+	['desktop', 'Desktop'],
+];
+
+let ingestAliasRowNonce = 0;
+
+function ingestAliasRowHtml(name = '', aliasValue = '', categoryValue = '') {
+	const nonce = ingestAliasRowNonce++;
+	const categoryOptions = INGEST_CATEGORIES
+	.map(([value, label]) => `<option value="${value}" ${value === categoryValue ? 'selected' : ''}>${label}</option>`)
+	.join('');
+	return `
+	<div class="server-row-line ingest-alias-row">
+		<div class="field-label"></div>
+		<input type="text" name="ingestAliasName" value="${escapeHtml(name)}" list="ingestAliasNameList-${nonce}" placeholder="Ingest name" style="flex: 1 0 0; min-width: 0;">
+		<datalist id="ingestAliasNameList-${nonce}" class="ingest-alias-name-list"></datalist>
+		<input type="text" name="ingestAliasValue" value="${escapeHtml(aliasValue)}" placeholder="Alias" style="flex: 1 0 0; min-width: 0;">
+		<select class="sdpi-item-value select" name="ingestAliasCategory" style="flex: 0 0 90px;">${categoryOptions}</select>
+		<button class="remove icon-button icon-remove" title="Remove"></button>
+	</div>
+	`;
+}
+
+/**
+ * Refresh the ingest name autocomplete datalist for every override row of a server, excluding
+ * whatever ingest name is already used by another row so the same one can't be overridden twice
+ * @param {HTMLElement} serverRow
+ */
+function refreshIngestAliasOverrideDatalists(serverRow) {
+	const lists = ingestSceneListsByServer.get(serverRow);
+	if (!lists) return;
+	const rows = Array.from(serverRow.querySelectorAll('.ingest-alias-row'));
+	const usedNames = new Set(rows.map((r) => r.querySelector('input[name="ingestAliasName"]').value.trim()).filter(Boolean));
+	const allNames = [...new Set(lists.ingests.map((ingest) => ingest.name))];
+
+	rows.forEach((r) => {
+		const currentName = r.querySelector('input[name="ingestAliasName"]').value.trim();
+		const options = allNames
+		.filter((name) => name === currentName || !usedNames.has(name))
+		.map((name) => {
+			const option = document.createElement('option');
+			option.value = name;
+			return option;
+		});
+		r.querySelector('.ingest-alias-name-list')?.replaceChildren(...options);
+	});
+}
+
 /**
  * Refresh the ingest/scene autocomplete datalists for every mapping row of a server, excluding
  * whatever ingest/scene is already used by another row so the same one can't be mapped twice
@@ -146,6 +198,10 @@ function serverRowHtml(server = {}) {
 		? server.ingestSceneMap
 		: [{ ingest: '', scene: '' }];
 	const ingestSceneRows = ingestSceneMap.map((m) => ingestSceneRowHtml(m.ingest, m.scene)).join('');
+	const ingestAliasOverrideNames = [...new Set([...Object.keys(server.ingestAlias || {}), ...Object.keys(server.ingestCategory || {})])];
+	const ingestAliasRows = ingestAliasOverrideNames
+	.map((overrideName) => ingestAliasRowHtml(overrideName, server.ingestAlias?.[overrideName] || '', server.ingestCategory?.[overrideName] || ''))
+	.join('');
 	return `
 	<div class="server-row" data-id="${id}">
 		<div class="server-row-header">
@@ -181,6 +237,7 @@ function serverRowHtml(server = {}) {
 			<div class="pinned-ingest-items">${pinnedIngestRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
+				<button class="import-streamer-ingests" title="Fetch a streamer's settings from the 1a3.uk userscript settings API - overwrites this server's Pinned Ingests list and the global Ingest Aliases & Categories">Import from streamer...</button>
 				<button class="add-pinned-ingest" style="margin-left: auto;">Add pinned ingest</button>
 			</div>
 		</div>
@@ -190,6 +247,14 @@ function serverRowHtml(server = {}) {
 			<div class="server-row-line">
 				<div class="field-label"></div>
 				<button class="add-ingest-scene" style="margin-left: auto;">Add mapping</button>
+			</div>
+		</div>
+		<div class="server-ingest-aliases" style="${checked ? '' : 'display: none;'}">
+			<div class="server-pinned-ingests-label" title="Per-server override of the display name and/or category for a specific ingest (matched by ingest name), for when this server needs something different from the global Ingest Aliases &amp; Categories setting">Ingest Alias/Category Overrides</div>
+			<div class="ingest-alias-items">${ingestAliasRows}</div>
+			<div class="server-row-line">
+				<div class="field-label"></div>
+				<button class="add-ingest-alias" style="margin-left: auto;">Add override</button>
 			</div>
 		</div>
 	</div>
@@ -253,10 +318,23 @@ document.querySelector('.server-items').addEventListener('click', (e) => {
 		return;
 	}
 
+	if (e.target.matches('.import-streamer-ingests')) {
+		importStreamerIngests(e.target.closest('.server-row'));
+		return;
+	}
+
 	if (e.target.matches('.add-ingest-scene')) {
 		e.target.closest('.server-ingest-scenes').querySelector('.ingest-scene-items')
 		.insertAdjacentHTML('beforeend', ingestSceneRowHtml());
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
+		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+		return;
+	}
+
+	if (e.target.matches('.add-ingest-alias')) {
+		e.target.closest('.server-ingest-aliases').querySelector('.ingest-alias-items')
+		.insertAdjacentHTML('beforeend', ingestAliasRowHtml());
+		refreshIngestAliasOverrideDatalists(e.target.closest('.server-row'));
 		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
 		return;
 	}
@@ -297,6 +375,15 @@ document.querySelector('.server-items').addEventListener('click', (e) => {
 		return;
 	}
 
+	const aliasRow = e.target.closest('.ingest-alias-row');
+	if (aliasRow && e.target.matches('.remove')) {
+		const serverRow = e.target.closest('.server-row');
+		aliasRow.remove();
+		refreshIngestAliasOverrideDatalists(serverRow);
+		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+		return;
+	}
+
 	const row = e.target.closest('.server-row');
 	if (e.target.matches('.down')) {
 		const next = row.nextElementSibling;
@@ -320,9 +407,14 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 		if (section) section.style.display = e.target.checked ? '' : 'none';
 		const mapSection = e.target.closest('.server-row').querySelector('.server-ingest-scenes');
 		if (mapSection) mapSection.style.display = e.target.checked ? '' : 'none';
+		const aliasSection = e.target.closest('.server-row').querySelector('.server-ingest-aliases');
+		if (aliasSection) aliasSection.style.display = e.target.checked ? '' : 'none';
 	}
 	if (e.target.matches('input[name="ingestSceneIngest"], input[name="ingestSceneScene"]')) {
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
+	}
+	if (e.target.matches('input[name="ingestAliasName"]')) {
+		refreshIngestAliasOverrideDatalists(e.target.closest('.server-row'));
 	}
 });
 
@@ -333,26 +425,42 @@ function serializeFormValue(formEl) {
 	delete rest.ingestPinned;
 	delete rest.ingestSceneIngest;
 	delete rest.ingestSceneScene;
+	delete rest.ingestAliasName;
+	delete rest.ingestAliasValue;
+	delete rest.ingestAliasCategory;
 	const toArray = (v) => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
 	const names = toArray(serverName);
 	const ips = toArray(serverIp);
 	const ports = toArray(serverPort);
 	const pwds = toArray(serverPwd);
 	const rows = Array.from(document.querySelectorAll('.server-row'));
-	rest.servers = rows.map((row, i) => ({
-		id: row.dataset.id,
-		name: names[i] || '',
-		ip: ips[i] || '',
-		port: ports[i] || '',
-		pwd: pwds[i] || '',
-		irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
-		secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
-		ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
-		ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({
-			ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
-			scene: r.querySelector('input[name="ingestSceneScene"]').value,
-		})).filter((m) => m.ingest || m.scene),
-	}));
+	rest.servers = rows.map((row, i) => {
+		const aliasRows = Array.from(row.querySelectorAll('.ingest-alias-row'));
+		return {
+			id: row.dataset.id,
+			name: names[i] || '',
+			ip: ips[i] || '',
+			port: ports[i] || '',
+			pwd: pwds[i] || '',
+			irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
+			secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
+			ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
+			ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({
+				ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
+				scene: r.querySelector('input[name="ingestSceneScene"]').value,
+			})).filter((m) => m.ingest || m.scene),
+			ingestAlias: Object.fromEntries(
+				aliasRows
+				.map((r) => [r.querySelector('input[name="ingestAliasName"]').value, r.querySelector('input[name="ingestAliasValue"]').value.trim()])
+				.filter(([name, alias]) => name && alias),
+			),
+			ingestCategory: Object.fromEntries(
+				aliasRows
+				.map((r) => [r.querySelector('input[name="ingestAliasName"]').value, r.querySelector('select[name="ingestAliasCategory"]').value])
+				.filter(([name, category]) => name && category),
+			),
+		};
+	});
 	Object.keys(rest).forEach((key) => {
 		if (/^(ip|port|pwd)\d+$/.test(key)) delete rest[key];
 	});
@@ -370,6 +478,116 @@ function cloneForForm() {
 	return rest;
 }
 
+let cachedIngestLists = null;
+
+const VALID_CATEGORIES = new Set(['backpack', 'phone', 'desktop']);
+
+/**
+ * (Re)render the global Ingest Aliases & Categories list from every known ingest name (live,
+ * across all servers, plus anything already saved), backed by the flat ingestAlias__<name> /
+ * ingestCategory__<name> global settings. Matched by ingest name (as shown in IRLToolkit, which
+ * doesn't support renaming ingests) - per-server overrides live separately on each server row.
+ */
+function renderIngestAliasList() {
+	if (!cachedIngestLists) return;
+	const { ingestsLists, connectedIngestSourceNames } = cachedIngestLists;
+	const ingestNames = new Set();
+	ingestsLists.flat().forEach((ingest) => ingestNames.add(ingest.name));
+
+	Object.keys(globalSettings).forEach((key) => {
+		const aliasMatch = key.match(/^ingestAlias__(.+)$/);
+		if (aliasMatch) ingestNames.add(aliasMatch[1]);
+		const categoryMatch = key.match(/^ingestCategory__(.+)$/);
+		if (categoryMatch) ingestNames.add(categoryMatch[1]);
+	});
+
+	const connectedSet = new Set(connectedIngestSourceNames);
+	const connectedNames = new Set(ingestsLists.flat().filter((ingest) => connectedSet.has(ingest.obs_source_name)).map((ingest) => ingest.name));
+
+	document.querySelector('#ingestAliasList').innerHTML = [...ingestNames]
+	.sort((a, b) => a.localeCompare(b))
+	.map((name) => {
+		const safeName = escapeHtml(name);
+		const aliasKey = `ingestAlias__${name}`;
+		const categoryKey = `ingestCategory__${name}`;
+		const canDelete = !connectedNames.has(name);
+		const categoryOptions = INGEST_CATEGORIES
+		.map(([value, label]) => `<option value="${value}">${label}</option>`)
+		.join('');
+		return `
+			<div class="sdpi-item">
+				<div class="sdpi-item-label" title="${safeName}">${safeName}</div>
+				<div class="sdpi-item-value" style="display: flex; gap: 4px; align-items: center;">
+					<input style="flex: 1 0 0; min-width: 0;" type="text" name="ingestAlias__${safeName}" placeholder="${safeName}">
+					<select style="flex: 0 0 90px;" class="sdpi-item-value select" name="ingestCategory__${safeName}">${categoryOptions}</select>
+					${canDelete ? `<button class="remove-alias icon-button icon-remove" title="Remove" data-alias-key="${escapeHtml(aliasKey)}" data-category-key="${escapeHtml(categoryKey)}"></button>` : ''}
+				</div>
+			</div>
+		`;
+	}).join('');
+}
+
+function removeAliasRow(e) {
+	const btn = e.target.closest('.remove-alias');
+	if (!btn) return;
+	e.preventDefault();
+	delete globalSettings[btn.dataset.aliasKey];
+	if (btn.dataset.categoryKey) delete globalSettings[btn.dataset.categoryKey];
+	btn.closest('.sdpi-item').remove();
+	window.opener.sendGlobalSettingsToInspector(globalSettings);
+}
+document.querySelector('#ingestAliasList').addEventListener('click', removeAliasRow);
+
+/**
+ * Import ingest settings for a streamer from the 1a3.uk userscript-settings public API: pinned
+ * ingests go into this specific server's Pinned Ingests list, while aliases/categories go into
+ * the global Ingest Aliases & Categories settings shared by every server.
+ * @param {HTMLElement} serverRow
+ */
+async function importStreamerIngests(serverRow) {
+	const btn = serverRow.querySelector('.import-streamer-ingests');
+	const streamerName = window.prompt('Streamer name to import ingest settings for:');
+	if (!streamerName || !streamerName.trim()) return;
+
+	const originalText = btn.textContent;
+	btn.disabled = true;
+	btn.textContent = 'Importing...';
+	try {
+		const response = await fetch(`https://1a3.uk/api/mediamtx/userscript-settings/${encodeURIComponent(streamerName.trim())}/public`);
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		const data = await response.json();
+		const ingests = data?.settings?.ingests;
+		if (!data?.success || !ingests || typeof ingests !== 'object') throw new Error('Unexpected response format');
+
+		// The API key is the ingest name minus the " Player" suffix that OBS/IRLToolkit actually use
+		const pinnedNames = Object.entries(ingests)
+		.filter(([, info]) => info?.mine === true)
+		.map(([key]) => key);
+		if (pinnedNames.length) {
+			serverRow.querySelector('.pinned-ingest-items').innerHTML = pinnedNames.map((name) => pinnedIngestRowHtml(name)).join('');
+		}
+
+		Object.entries(ingests).forEach(([key, info]) => {
+			const name = key;
+			if (typeof info?.label === 'string' && info.label.trim()) globalSettings[`ingestAlias__${name}`] = info.label;
+			const category = typeof info?.category === 'string' ? info.category.trim().toLowerCase() : '';
+			globalSettings[`ingestCategory__${name}`] = VALID_CATEGORIES.has(category) ? category : '';
+		});
+		renderIngestAliasList();
+
+		FormUtils.setFormValue(cloneForForm(), document.querySelector('form'));
+		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+	}
+	catch (e) {
+		console.error('Error importing streamer ingest settings', e);
+		window.alert(`Failed to import ingest settings: ${e.message}`);
+	}
+	finally {
+		btn.disabled = false;
+		btn.textContent = originalText;
+	}
+}
+
 window.onload = () => {
 	const formEl = document.querySelector('form');
 
@@ -383,43 +601,13 @@ window.onload = () => {
 	renderTargetOptions();
 
 	window.opener.getGlobalLists().then(({ ingestsLists, scenesLists, connectedIngestSourceNames }) => {
-		const ingestNames = new Map();
-		ingestsLists.flat().forEach((ingest) => ingestNames.set(ingest.obs_source_name, ingest.name));
-		const connectedIngestNamesSet = new Set(connectedIngestSourceNames);
-
-		Object.keys(globalSettings).forEach((key) => {
-			const ingestMatch = key.match(/^ingestAlias__(.+)$/);
-			if (ingestMatch && !ingestNames.has(ingestMatch[1])) ingestNames.set(ingestMatch[1], ingestMatch[1]);
-		});
-
-		document.querySelector('#ingestAliasList').innerHTML = [...ingestNames.entries()]
-		.sort((a, b) => a[1].localeCompare(b[1]))
-		.map(([sourceName, name]) => {
-			const safeSource = escapeHtml(sourceName);
-			const safeName = escapeHtml(name);
-			const aliasKey = `ingestAlias__${sourceName}`;
-			const categoryKey = `ingestCategory__${sourceName}`;
-			const canDelete = !connectedIngestNamesSet.has(sourceName);
-			return `
-				<div class="sdpi-item">
-					<div class="sdpi-item-label" title="${safeName}">${safeName}</div>
-					<div class="sdpi-item-value" style="display: flex; gap: 4px; align-items: center;">
-						<input style="flex: 1 0 0; min-width: 0;" type="text" name="ingestAlias__${safeSource}" placeholder="${safeName}">
-						<select style="flex: 0 0 90px;" class="sdpi-item-value select" name="ingestCategory__${safeSource}">
-							<option value="">Uncategorized</option>
-							<option value="backpack">Backpack</option>
-							<option value="phone">Phone</option>
-							<option value="desktop">Desktop</option>
-						</select>
-						${canDelete ? `<button class="remove-alias icon-button icon-remove" title="Remove" data-alias-key="${escapeHtml(aliasKey)}" data-category-key="${escapeHtml(categoryKey)}"></button>` : ''}
-					</div>
-				</div>
-			`;
-		}).join('');
+		cachedIngestLists = { ingestsLists, connectedIngestSourceNames };
+		renderIngestAliasList();
 
 		Array.from(document.querySelectorAll('.server-row')).forEach((row, i) => {
 			ingestSceneListsByServer.set(row, { ingests: ingestsLists[i] ?? [], scenes: scenesLists[i] ?? [] });
 			refreshIngestSceneDatalists(row);
+			refreshIngestAliasOverrideDatalists(row);
 		});
 
 		FormUtils.setFormValue(cloneForForm(), formEl);
@@ -434,17 +622,6 @@ window.onload = () => {
 		}),
 	);
 };
-
-function removeAliasRow(e) {
-	const btn = e.target.closest('.remove-alias');
-	if (!btn) return;
-	e.preventDefault();
-	delete globalSettings[btn.dataset.aliasKey];
-	if (btn.dataset.categoryKey) delete globalSettings[btn.dataset.categoryKey];
-	btn.closest('.sdpi-item').remove();
-	window.opener.sendGlobalSettingsToInspector(globalSettings);
-}
-document.querySelector('#ingestAliasList').addEventListener('click', removeAliasRow);
 
 function setTransferStatus(message) {
 	document.querySelector('#settingsTransferStatus').textContent = message;

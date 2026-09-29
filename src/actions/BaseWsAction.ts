@@ -17,10 +17,12 @@ export function registerGlobalListsHandler(action: InstanceType<typeof Action>):
 		else if (payload.event === 'getGlobalLists') {
 			const liveIngestsLists = sockets.map((_, socketIdx) => sortIngests([...getIngests(socketIdx).values()], socketIdx));
 			const liveScenesLists = await getScenesLists();
+			const servers = resolveServers(globalSettings);
 			const ingestsLists = liveIngestsLists.map((live, socketIdx) => {
 				if (live.length) return live;
+				const server = servers[socketIdx];
 				return [...getLastKnownIngestNames(socketIdx)]
-				.filter(([obs_source_name]) => !!globalSettings[`ingestAlias__${obs_source_name}`])
+				.filter(([, name]) => !!(server?.ingestAlias?.[name] ?? globalSettings[`ingestAlias__${name}`]))
 				.map(([obs_source_name, name]) => ({ obs_source_name, name }));
 			});
 			const scenesLists = liveScenesLists.map((scenes, socketIdx) => {
