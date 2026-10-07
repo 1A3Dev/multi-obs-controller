@@ -141,20 +141,22 @@ export class StreamStatusAction extends AbstractStatefulAction<ActionSettings, '
 		}
 	}
 
-	private _renderTitleTemplate(template: string, time: string): string {
+	private _renderTitleTemplate(template: string, time: string, target: string): string {
 		const templateLines = template.split('\n');
 		return templateLines
-		.map(line => line.replace(/\{time\}/g, time))
+		.map(line => line.replace(/\{time\}/g, time).replace(/\{target\}/g, target))
 		.filter((line, i) => line !== '' || templateLines[i] === '')
 		.join('\n');
 	}
 
 	private _setTimerTitle(context: string, settings: (SocketSettings<ActionSettings> | null)[]) {
+		const servers = resolveServers(globalSettings);
 		const blocks = settings
 		.map((socketSettings, socketIdx) => {
 			if (!socketSettings?.titleTemplate) return;
 			const time = this._status[socketIdx] === 'on' ? secondsToTimecode((Date.now() - this._startTimestamp[socketIdx]) / 1000) : '';
-			return this._renderTitleTemplate(socketSettings.titleTemplate, time);
+			const target = servers[socketIdx]?.name || `OBS #${socketIdx + 1}`;
+			return this._renderTitleTemplate(socketSettings.titleTemplate, time, target);
 		})
 		.filter((block): block is string => !!block);
 		$SD.setTitle(context, blocks.join('\n'));

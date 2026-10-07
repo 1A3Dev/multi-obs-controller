@@ -7,7 +7,7 @@ export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'ir
 export const IRLTK_EXCLUDED_ACTIONS = ['createrecordchapter', 'refreshcapturedevice', 'savereplaybuffer', 'screenshot', 'setprofile', 'togglerecord', 'togglereplaybuffer', 'togglestream', 'togglevirtualcam'];
 
 // Action ids that can target the server of the last opened ingest profile instead of fixed servers
-export const DYNAMIC_TARGET_ACTIONS = ['triggerstudiomodetransition'];
+export const DYNAMIC_TARGET_ACTIONS = ['triggerstudiomodetransition', 'streamstatus'];
 
 // Ingest categories, in display/sort order
 export const INGEST_CATEGORIES = /** @type {const} */ (['backpack', 'phone', 'desktop']);
