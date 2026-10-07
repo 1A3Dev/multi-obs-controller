@@ -28,6 +28,13 @@
 	"Profiles": [
 		{
             "AutoInstall": true,
+			"DeviceType": 0,
+			"DontAutoSwitchWhenInstalled": true,
+			"Name": "IRLToolkit Ingests",
+			"Readonly": true
+		},
+		{
+            "AutoInstall": true,
 			"DeviceType": 7,
 			"DontAutoSwitchWhenInstalled": true,
 			"Name": "IRLToolkit Ingests (+)",
