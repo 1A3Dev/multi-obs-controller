@@ -608,7 +608,7 @@ async function importStreamerIngests(serverRow) {
 
 		Object.entries(ingests).forEach(([key, info]) => {
 			const name = key;
-			if (typeof info?.label === 'string' && info.label.trim()) globalSettings[`ingestAlias__${name}`] = info.label;
+			if (info?.mine !== true && typeof info?.label === 'string' && info.label.trim()) globalSettings[`ingestAlias__${name}`] = info.label;
 			const category = typeof info?.category === 'string' ? info.category.trim().toLowerCase() : '';
 			globalSettings[`ingestCategory__${name}`] = INGEST_CATEGORIES.includes(category) ? category : '';
 		});
