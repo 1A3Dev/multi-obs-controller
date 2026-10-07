@@ -10,7 +10,7 @@ type ActionSettings = Record<string, never>
  */
 export class IrltkIngestStudioTargetAction extends AbstractStatelessAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingeststudiotarget', {
+		super('uk.1a3.multiobs.irltkingeststudiotarget', {
 			hideTargetIndicators: true,
 			statesColors: { active: '#b8332e', intermediate: '#3f8a3a' },
 		});
