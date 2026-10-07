@@ -265,7 +265,7 @@ function serverRowHtml(server = {}) {
 			<div class="pinned-ingest-items">${pinnedIngestRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
-				<button class="import-streamer-ingests" title="Fetch a streamer's settings from the 1a3.uk userscript settings API - overwrites this server's Pinned Ingests list (pinned ingest aliases go into this server's Ingest Alias/Category Overrides) and the global Ingest Aliases & Categories">Import from streamer...</button>
+				<button class="import-streamer-ingests" title="Fetch a streamer's settings from the 1a3.uk userscript settings API - overwrites this server's Pinned Ingests list (pinned ingest aliases/categories go into this server's Ingest Alias/Category Overrides) and the global Ingest Aliases & Categories">Import from streamer...</button>
 				<button class="add-pinned-ingest" style="margin-left: auto;">Add pinned ingest</button>
 			</div>
 		</details>
@@ -579,9 +579,9 @@ document.querySelector('#ingestAliasList').addEventListener('click', removeAlias
 
 /**
  * Import ingest settings for a streamer from the 1a3.uk userscript-settings public API: pinned
- * ingests go into this specific server's Pinned Ingests list (with their aliases as this server's
- * Ingest Alias/Category Overrides), while other aliases and all categories go into the global
- * Ingest Aliases & Categories settings shared by every server.
+ * ingests go into this specific server's Pinned Ingests list (with their aliases/categories as this
+ * server's Ingest Alias/Category Overrides), while every other ingest's alias/category goes into
+ * the global Ingest Aliases & Categories settings shared by every server.
  * @param {HTMLElement} serverRow
  */
 async function importStreamerIngests(serverRow) {
@@ -611,16 +611,21 @@ async function importStreamerIngests(serverRow) {
 		Object.entries(ingests).forEach(([key, info]) => {
 			const name = key;
 			const label = typeof info?.label === 'string' ? info.label.trim() : '';
-			if (label && info?.mine === true) {
-				// Pinned ingests get their alias as a per-server override instead of a global alias
+			const rawCategory = typeof info?.category === 'string' ? info.category.trim().toLowerCase() : '';
+			const category = INGEST_CATEGORIES.includes(rawCategory) ? rawCategory : '';
+			if (info?.mine === true) {
+				// Pinned ingests get their alias/category as a per-server override instead of a global one
 				const existingRow = Array.from(aliasItems.querySelectorAll('.ingest-alias-row'))
 				.find((r) => r.querySelector('input[name="ingestAliasName"]').value.trim() === name);
-				if (existingRow) existingRow.querySelector('input[name="ingestAliasValue"]').value = label;
-				else aliasItems.insertAdjacentHTML('beforeend', ingestAliasRowHtml(name, label));
+				if (existingRow) {
+					existingRow.querySelector('input[name="ingestAliasValue"]').value = label;
+					existingRow.querySelector('select[name="ingestAliasCategory"]').value = category;
+				}
+				else if (label || category) aliasItems.insertAdjacentHTML('beforeend', ingestAliasRowHtml(name, label, category));
+				return;
 			}
-			else if (label) globalSettings[`ingestAlias__${name}`] = label;
-			const category = typeof info?.category === 'string' ? info.category.trim().toLowerCase() : '';
-			globalSettings[`ingestCategory__${name}`] = INGEST_CATEGORIES.includes(category) ? category : '';
+			if (label) globalSettings[`ingestAlias__${name}`] = label;
+			globalSettings[`ingestCategory__${name}`] = category;
 		});
 		renderIngestAliasList();
 		refreshIngestAliasOverrideDatalists(serverRow);
