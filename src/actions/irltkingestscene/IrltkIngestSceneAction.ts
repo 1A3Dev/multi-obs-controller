@@ -3,7 +3,7 @@ import { SDUtils } from '../../plugin/utils';
 import { AbstractStatefulRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngestContextOverride, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
 type ActionSettings = IrltkTargetSettings & { studioTarget: 'preview' | 'program' }
@@ -56,8 +56,9 @@ export class IrltkIngestSceneAction extends AbstractStatefulRequestAction<Action
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): SingleRequestPayload<'SetCurrentProgramScene' | 'SetCurrentPreviewScene'> {
 		const sceneName = this._resolveSceneName(socketIdx, settings);
+		const studioTarget = getIngestContextOverride().studioTarget ?? settings.studioTarget;
 		return {
-			requestType: (!this._studioModeEnabled[socketIdx] || settings.studioTarget === 'program') ? 'SetCurrentProgramScene' : 'SetCurrentPreviewScene',
+			requestType: (!this._studioModeEnabled[socketIdx] || studioTarget === 'program') ? 'SetCurrentProgramScene' : 'SetCurrentPreviewScene',
 			requestData: { sceneName: sceneName as string },
 		};
 	}

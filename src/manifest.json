@@ -627,6 +627,24 @@
             "VisibleInActionsList": false
 		},
 		{
+			"UUID": "dev.theca11.multiobs.irltkingeststudiotarget",
+			"Icon": "assets/actions/irltkingeststudiotarget/icon",
+			"Name": "Ingest Studio Target",
+			"Tooltip": "Make every Ingest Scene button switch the Program or Preview scene (press to toggle), overriding their own Studio Mode Scene Target while viewed via an Open Ingest Profile button. Long press to go back to each button's own setting (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingeststudiotarget/key_on",
+					"Name": "Enabled"
+				},
+				{
+					"Image": "assets/actions/irltkingeststudiotarget/key_off",
+					"Name": "Disabled"
+				}
+			],
+			"DisableAutomaticStates": true,
+            "VisibleInActionsList": false
+		},
+		{
 			"UUID": "dev.theca11.multiobs.openingestprofile",
 			"Icon": "assets/actions/openingestprofile/icon",
 			"Name": "Open Ingest Profile",

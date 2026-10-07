@@ -3,7 +3,7 @@
 export const MAX_SERVERS = 10;
 
 // Action ids (last segment of the action UUID) that only target, or never target, IRLToolkit servers
-export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber'];
+export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget'];
 export const IRLTK_EXCLUDED_ACTIONS = ['createrecordchapter', 'refreshcapturedevice', 'savereplaybuffer', 'screenshot', 'setprofile', 'togglerecord', 'togglereplaybuffer', 'togglestream', 'togglevirtualcam'];
 
 // Action ids that can target the server of the last opened ingest profile instead of fixed servers

@@ -58,15 +58,27 @@ const lastKnownIngestNames: Map<string, string>[] = new Array(sockets.length).fi
 const currentPage: number[] = new Array(sockets.length).fill(1);
 const pageListeners = new Set<(socketIdx: number) => void>();
 
-export type IngestContextOverride = { target?: number, includeOffline?: boolean };
+export type IngestContextOverride = { target?: number, includeOffline?: boolean, studioTarget?: 'preview' | 'program' };
 let ingestContextOverride: IngestContextOverride = {};
+const studioTargetListeners = new Set<() => void>();
 
 export function setIngestContextOverride(override: IngestContextOverride): void {
 	ingestContextOverride = override;
+	studioTargetListeners.forEach(fn => fn());
 }
 
 export function clearIngestContextOverride(): void {
 	ingestContextOverride = {};
+	studioTargetListeners.forEach(fn => fn());
+}
+
+export function setIngestStudioTargetOverride(studioTarget: 'preview' | 'program' | undefined): void {
+	ingestContextOverride = { ...ingestContextOverride, studioTarget };
+	studioTargetListeners.forEach(fn => fn());
+}
+
+export function onIngestStudioTargetOverrideChanged(callback: () => void): void {
+	studioTargetListeners.add(callback);
 }
 
 export function getIngestContextOverride(): IngestContextOverride {
