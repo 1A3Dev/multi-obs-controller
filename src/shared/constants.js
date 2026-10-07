@@ -15,6 +15,7 @@ export const INGEST_CATEGORIES = /** @type {const} */ (['backpack', 'phone', 'de
 // OBS IRLToolkit device types that support opening an ingest profile
 /** @type {Record<number, string>} */
 export const INGEST_PROFILE_NAMES = {
+	0: 'IRLToolkit Ingests',
 	7: 'IRLToolkit Ingests (+)',
 	13: 'IRLToolkit Ingests (+XL)',
 };
