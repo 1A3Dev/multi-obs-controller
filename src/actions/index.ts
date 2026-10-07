@@ -6,6 +6,7 @@ export { IrltkIngestPageNumberAction } from './irltkingestpagenumber/IrltkIngest
 export { IrltkIngestPagePrevAction } from './irltkingestpageprev/IrltkIngestPagePrevAction';
 export { IrltkIngestSceneAction } from './irltkingestscene/IrltkIngestSceneAction';
 export { IrltkIngestStatusAction } from './irltkingeststatus/IrltkIngestStatusAction';
+export { IrltkIngestStudioTargetAction } from './irltkingeststudiotarget/IrltkIngestStudioTargetAction';
 export { IrltkIngestVolumeAction } from './irltkingestvolume/IrltkIngestVolumeAction';
 export { MediaInputControlAction } from './mediainputcontrol/MediaInputControlAction';
 export { MediaInputControlDialAction } from './mediainputcontroldial/MediaInputControlDialAction';

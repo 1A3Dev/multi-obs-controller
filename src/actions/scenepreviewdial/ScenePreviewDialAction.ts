@@ -1,10 +1,12 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractStatefulAction } from '../BaseWsAction';
 import { StateEnum } from '../StateEnum';
+import { globalSettings, resolveServers } from '../globalSettings';
+import { getLastKnownIngestNames, onIngestsUpdated } from '../irltkIngests';
 import { getScenesLists } from '../lists';
 import { ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
 
-type ActionSettings = { studioTarget?: 'preview' | 'program' } & Record<string, string | undefined>;
+type ActionSettings = { studioTarget?: 'preview' | 'program', useIngestAlias?: 'true', sceneOrder?: string | string[] } & Record<string, string | string[] | undefined>;
 type Scene = { sceneName: string };
 type FilteredScene = { sceneName: string };
 
@@ -100,6 +102,13 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 				this._updateDialFeedback(context, displayIdx);
 			}
 		});
+
+		// Ingest names (needed to look up aliases) are only learned from IRLToolkit status updates
+		onIngestsUpdated((socketIdx) => {
+			for (const [context, { settings, displayIdx }] of this.contexts) {
+				if (displayIdx === socketIdx && settings[socketIdx]?.useIngestAlias === 'true') this._updateDialFeedback(context, displayIdx);
+			}
+		});
 	}
 
 	override async onContextAppear(context: string, { displayIdx }: ContextData<ActionSettings>): Promise<void> {
@@ -165,11 +174,24 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		return socketSettings?.studioTarget === 'program' ? this._currentProgramSceneName[socketIdx] : this._currentPreviewSceneName[socketIdx];
 	}
 
+	/** Scenes in the custom order first, then any not in it (e.g. newly added) in their OBS order - keep in sync with pi.js orderSceneNames */
 	private _getFilteredScenes(socketSettings: SocketSettings<ActionSettings>, socketIdx: number): FilteredScene[] {
 		const scenes = this._scenesCache[socketIdx] ?? [];
-		return scenes
+		const sceneOrderSetting = socketSettings?.sceneOrder;
+		const sceneOrder = (Array.isArray(sceneOrderSetting) ? sceneOrderSetting : sceneOrderSetting ? [sceneOrderSetting] : [])
+		.filter(sceneName => scenes.includes(sceneName));
+		return [...sceneOrder, ...scenes.filter(sceneName => !sceneOrder.includes(sceneName))]
 		.filter(sceneName => socketSettings?.[`exclude__${sceneName}`] !== 'true')
 		.map(sceneName => ({ sceneName }));
+	}
+
+	/** Alias of the ingest mapped to this scene in the server's Ingest → Scene map, if one is set */
+	private _getMappedIngestAlias(sceneName: string, socketIdx: number): string | undefined {
+		const server = resolveServers(globalSettings)[socketIdx];
+		const mapping = server?.ingestSceneMap?.find(m => m.scene === sceneName && m.ingest);
+		if (!mapping?.ingest) return undefined;
+		const ingestName = getLastKnownIngestNames(socketIdx).get(mapping.ingest) ?? mapping.ingest;
+		return server?.ingestAlias?.[ingestName] || globalSettings[`ingestAlias__${ingestName}`] || undefined;
 	}
 
 	private _refreshUntouchedContexts(socketIdx: number, changedTarget: 'preview' | 'program') {
@@ -202,11 +224,13 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		const currentName = this._selectedSceneCache.get(context)?.[displayIdx] ?? this._getLiveSceneName(socketSettings, displayIdx);
 		const idx = Math.max(0, filtered.findIndex(s => s.sceneName === currentName));
 		const percent = filtered.length > 1 ? Math.round((idx / (filtered.length - 1)) * 100) : 100;
-		const isLive = filtered[idx].sceneName === this._getLiveSceneName(socketSettings, displayIdx);
+		const { sceneName } = filtered[idx];
+		const isLive = sceneName === this._getLiveSceneName(socketSettings, displayIdx);
+		const alias = socketSettings?.useIngestAlias === 'true' ? this._getMappedIngestAlias(sceneName, displayIdx) : undefined;
 		$SD.setFeedback(context, this._dimFeedback({
 			status: isLive ? '● SELECTED' : '',
 			title,
-			value: filtered[idx].sceneName,
+			value: alias ?? sceneName,
 			indicator: percent,
 		}, displayIdx));
 	}

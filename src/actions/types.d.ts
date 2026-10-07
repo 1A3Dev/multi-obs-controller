@@ -136,7 +136,8 @@ export type ConstructorParams = {
 	statusEvent?: keyof OBSEventTypes | (keyof OBSEventTypes)[],
 	statesColors?: {
 		active?: string,
-		inactive?: string
+		inactive?: string,
+		intermediate?: string
 	},
 	hideTargetIndicators?: boolean
 }

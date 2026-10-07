@@ -4,7 +4,7 @@ import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS } fr
 import { resolveServers } from '../shared/servers.js';
 import { FormUtils, localizeUI } from './utils.js';
 
-const NO_TARGET_ACTIONS = new Set(['irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'previousprofile']);
+const NO_TARGET_ACTIONS = new Set(['irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget', 'previousprofile']);
 const forms = new Map(); // common form and per OBS instance forms
 let globalSettings = {};
 let pendingGlobalListsResolvers = [];
