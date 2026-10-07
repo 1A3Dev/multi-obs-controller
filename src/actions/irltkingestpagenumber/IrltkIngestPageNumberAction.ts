@@ -6,7 +6,7 @@ type ActionSettings = { titleTemplate?: string }
 
 export class IrltkIngestPageNumberAction extends AbstractStatelessAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestpagenumber', { hideTargetIndicators: true });
+		super('uk.1a3.multiobs.irltkingestpagenumber', { hideTargetIndicators: true });
 
 		const refresh = (socketIdx: number) => {
 			for (const [context, contextData] of this.contexts) {

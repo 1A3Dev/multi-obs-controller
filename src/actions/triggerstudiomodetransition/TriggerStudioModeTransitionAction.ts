@@ -14,7 +14,7 @@ export class TriggerStudioModeTransitionAction extends AbstractStatefulRequestAc
 	private _status: boolean[] = new Array(sockets.length).fill(false);
 
 	constructor() {
-		super('dev.theca11.multiobs.triggerstudiomodetransition', { statusEvent: 'StudioModeStateChanged' });
+		super('uk.1a3.multiobs.triggerstudiomodetransition', { statusEvent: 'StudioModeStateChanged' });
 		this._showSuccess = true; // force showing success icon
 
 		sockets.forEach((socket, socketIdx) => {

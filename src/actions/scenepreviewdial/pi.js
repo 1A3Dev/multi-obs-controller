@@ -44,7 +44,7 @@ function renderAllSceneLists() {
 	document.querySelectorAll('.scene-config-list').forEach((container) => renderSceneList(container));
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.scenepreviewdial', ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.scenepreviewdial', ({ payload }) => {
 	const { event, scenesLists } = payload;
 	if (event !== 'SceneListLoaded') return;
 	cachedScenesLists = scenesLists;
@@ -58,7 +58,7 @@ document.querySelectorAll('input[name="target"]').forEach((el) => {
 	});
 });
 
-$PI.onDidReceiveSettings('dev.theca11.multiobs.scenepreviewdial', ({ payload }) => {
+$PI.onDidReceiveSettings('uk.1a3.multiobs.scenepreviewdial', ({ payload }) => {
 	latestSettings = payload.settings;
 	renderAllSceneLists();
 	localizeUI();

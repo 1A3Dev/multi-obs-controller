@@ -27,7 +27,7 @@ function renderSettingOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.filtersettingdial', replayOnTargetChange(['SourceListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.filtersettingdial', replayOnTargetChange(['SourceListLoaded'], ({ payload }) => {
 	const { event, scenesLists, inputsLists, filterList, settingKeys } = payload;
 
 	if (event === 'SourceListLoaded') {

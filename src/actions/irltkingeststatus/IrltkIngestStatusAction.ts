@@ -17,7 +17,7 @@ const enum KeyState {
 
 export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingeststatus');
+		super('uk.1a3.multiobs.irltkingeststatus');
 
 		const refresh = (socketIdx: number) => {
 			for (const [context, contextData] of this.contexts) {

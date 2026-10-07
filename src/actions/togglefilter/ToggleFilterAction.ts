@@ -8,7 +8,7 @@ type ActionSettings = { sourceName: string, filterName: string }
 
 export class ToggleFilterAction extends AbstractStatefulRequestAction<ActionSettings, 'SourceFilterEnableStateChanged'> {
 	constructor() {
-		super('dev.theca11.multiobs.togglefilter', { titleParam: 'filterName', statusEvent: 'SourceFilterEnableStateChanged' });
+		super('uk.1a3.multiobs.togglefilter', { titleParam: 'filterName', statusEvent: 'SourceFilterEnableStateChanged' });
 
 		this.onSendToPlugin(async ({ payload, context, action }: SendToPluginData<{ event: string, socketIdx: number, sourceName: string }>) => {
 			if (payload.event === 'GetSourceFilterList') {

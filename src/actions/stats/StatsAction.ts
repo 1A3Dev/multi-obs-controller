@@ -24,7 +24,7 @@ export class StatsAction extends AbstractStatelessAction<ActionSettings> {
 	private _firstDropped = new Array(sockets.length).fill(Number.MAX_SAFE_INTEGER);
 
 	constructor() {
-		super('dev.theca11.multiobs.stats', { hideTargetIndicators: true });
+		super('uk.1a3.multiobs.stats', { hideTargetIndicators: true });
 
 		this.onLongPress(() => {
 			this._resetStats();

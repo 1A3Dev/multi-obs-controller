@@ -20,7 +20,7 @@ export class OpenIngestProfileAction extends Action {
 	private _contexts = new Map<string, number>();
 
 	constructor() {
-		super('dev.theca11.multiobs.openingestprofile');
+		super('uk.1a3.multiobs.openingestprofile');
 
 		this.onWillAppear(({ context, payload }: WillAppearData<ActionSettings>) => {
 			this._trackContext(context, payload.settings);

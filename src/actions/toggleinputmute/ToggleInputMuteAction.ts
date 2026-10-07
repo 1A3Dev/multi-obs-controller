@@ -7,7 +7,7 @@ import { Input, SocketSettings, SingleRequestPayload } from '../types';
 type ActionSettings = { inputName: string }
 export class ToggleInputMuteAction extends AbstractStatefulRequestAction<ActionSettings, 'InputMuteStateChanged'> {
 	constructor() {
-		super('dev.theca11.multiobs.toggleinputmute', { titleParam: 'inputName', statusEvent: 'InputMuteStateChanged' });
+		super('uk.1a3.multiobs.toggleinputmute', { titleParam: 'inputName', statusEvent: 'InputMuteStateChanged' });
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>, state: StateEnum, desiredState?: number | undefined): SingleRequestPayload<'SetInputMute' | 'ToggleInputMute'> {

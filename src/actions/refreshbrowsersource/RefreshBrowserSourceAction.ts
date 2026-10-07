@@ -6,7 +6,7 @@ type ActionSettings = { sourceName: string }
 
 export class RefreshBrowserSourceAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.refreshbrowsersource', { titleParam: 'sourceName' });
+		super('uk.1a3.multiobs.refreshbrowsersource', { titleParam: 'sourceName' });
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): SingleRequestPayload<'PressInputPropertiesButton'> {

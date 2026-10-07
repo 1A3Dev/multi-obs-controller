@@ -1,6 +1,6 @@
 import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.setscene', replayOnTargetChange(['SceneListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.setscene', replayOnTargetChange(['SceneListLoaded'], ({ payload }) => {
 	const { event, scenesLists } = payload;
 
 	if (event === 'SceneListLoaded') {

@@ -1,6 +1,6 @@
 import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.mediainputcontrol', replayOnTargetChange(['InputListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.mediainputcontrol', replayOnTargetChange(['InputListLoaded'], ({ payload }) => {
 	const { event, inputsLists } = payload;
 
 	if (event === 'InputListLoaded') {
@@ -18,7 +18,7 @@ $PI.onSendToPropertyInspector('dev.theca11.multiobs.mediainputcontrol', replayOn
 }));
 
 // Hide action selector if inside multiaction (not supported)
-$PI.onDidReceiveSettings('dev.theca11.multiobs.mediainputcontrol', ({ payload: receiveSettingsPayload }) => {
+$PI.onDidReceiveSettings('uk.1a3.multiobs.mediainputcontrol', ({ payload: receiveSettingsPayload }) => {
 	if (receiveSettingsPayload.isInMultiAction) {
 		document.querySelector('.action-select').style.display = 'none';
 	}

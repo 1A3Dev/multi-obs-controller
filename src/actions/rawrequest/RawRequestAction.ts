@@ -5,7 +5,7 @@ type ActionSettings = { requestType: string, requestData: string }
 
 export class RawRequestAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.rawrequest');
+		super('uk.1a3.multiobs.rawrequest');
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any

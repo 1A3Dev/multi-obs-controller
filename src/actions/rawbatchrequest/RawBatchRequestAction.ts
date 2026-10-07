@@ -5,7 +5,7 @@ type ActionSettings = { executionType: string, haltOnFailure: string, requestsAr
 
 export class RawBatchRequestAction extends AbstractStatelessRequestAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.rawbatchrequest');
+		super('uk.1a3.multiobs.rawbatchrequest');
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): BatchRequestPayload {

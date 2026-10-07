@@ -8,7 +8,7 @@ type ActionSettings = IrltkTargetSettings & { stepDb: string, maxDb: string }
 
 export class IrltkIngestVolumeAction extends AbstractVolumeDialAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestvolume');
+		super('uk.1a3.multiobs.irltkingestvolume');
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));
 		onIngestPageChanged((socketIdx) => this.notifyTargetsChanged(socketIdx));

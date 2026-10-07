@@ -25,7 +25,7 @@ export class FilterSettingDialAction extends AbstractStatelessAction<ActionSetti
 	private _rotateTimers = new Map<string, NodeJS.Timeout>();
 
 	constructor() {
-		super('dev.theca11.multiobs.filtersettingdial', { titleParam: 'filterName', hideTargetIndicators: true });
+		super('uk.1a3.multiobs.filtersettingdial', { titleParam: 'filterName', hideTargetIndicators: true });
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;

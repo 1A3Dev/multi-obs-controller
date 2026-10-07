@@ -1,6 +1,6 @@
 import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.setprofile', replayOnTargetChange(['ProfileListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.setprofile', replayOnTargetChange(['ProfileListLoaded'], ({ payload }) => {
 	const { event, profilesLists } = payload;
 
 	if (event === 'ProfileListLoaded') {

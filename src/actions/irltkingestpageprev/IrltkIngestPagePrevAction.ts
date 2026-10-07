@@ -7,7 +7,7 @@ type ActionSettings = Record<string, never>
 
 export class IrltkIngestPagePrevAction extends AbstractStatelessAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestpageprev');
+		super('uk.1a3.multiobs.irltkingestpageprev');
 
 		this.onSinglePress(({ context, payload }: KeyDownData<PersistentSettings<ActionSettings>>) => {
 			const { settings, isInMultiAction } = payload;

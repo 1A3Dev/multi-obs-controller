@@ -9,7 +9,7 @@ type ActionSettings = { sceneName: string, sourceName: string, forceToggle?: 'tr
 
 export class ToggleSourceAction extends AbstractStatefulRequestAction<ActionSettings, 'SceneItemEnableStateChanged'> {
 	constructor() {
-		super('dev.theca11.multiobs.togglesource', { titleParam: 'sourceName', statusEvent: 'SceneItemEnableStateChanged' });
+		super('uk.1a3.multiobs.togglesource', { titleParam: 'sourceName', statusEvent: 'SceneItemEnableStateChanged' });
 
 		this.onSendToPlugin(async ({ payload, context, action }: SendToPluginData<{ event: string, socketIdx: number, sceneName: string }>) => {
 			if (payload.event === 'GetSceneItemsList') {

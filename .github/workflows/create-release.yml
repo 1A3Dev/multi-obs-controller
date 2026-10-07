@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 env:
-  plugin_uuid: dev.theca11.multiobs
+  plugin_uuid: uk.1a3.multiobs
   release_id: Multi-OBS-Controller-Plugin-${{ github.ref_name }}
 
 jobs:
