@@ -7,7 +7,7 @@ import { KeyDownData, KeyUpData } from '../types';
 export class ReconnectAction extends AbstractStatelessAction<Record<string, never>> {
 
 	constructor() {
-		super('dev.theca11.multiobs.reconnect');
+		super('uk.1a3.multiobs.reconnect');
 		this.onSinglePress((evtData: KeyUpData<unknown>) => this._reconnect(evtData.context));
 		this.onLongPress((evtData: KeyDownData<unknown>) => this._reconnect(evtData.context));
 	}
