@@ -496,6 +496,17 @@
 			"DisableAutomaticStates": true
 		},
 		{
+			"UUID": "dev.theca11.multiobs.reconnect",
+			"Icon": "assets/actions/reconnect/icon",
+			"Name": "Reconnect",
+			"Tooltip": "Force a reconnection attempt to the targeted OBS instance(s)",
+			"States": [
+				{
+					"Image": "assets/actions/reconnect/key_on"
+				}
+			]
+		},
+		{
 			"UUID": "dev.theca11.multiobs.streamstatus",
 			"Icon": "assets/actions/streamstatus/icon",
 			"Name": "Stream Status",

@@ -173,6 +173,10 @@
 		"Name": "Stats",
 		"Tooltip": "Get general/stream/record stats"
 	},
+	"dev.theca11.multiobs.reconnect": {
+		"Name": "Reconnect",
+		"Tooltip": "Force a reconnection attempt to the targeted OBS instance(s)"
+	},
 	"dev.theca11.multiobs.rawrequest": {
 		"Name": "Raw WS Request",
 		"Tooltip": "[Advanced] Send a raw WS request"

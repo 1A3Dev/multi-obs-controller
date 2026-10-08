@@ -173,6 +173,10 @@
 		"Name": "Estadísticas",
 		"Tooltip": "Mostrar estadísticas (generales/transmisión/grabación)"
 	},
+	"dev.theca11.multiobs.reconnect": {
+		"Name": "Reconectar",
+		"Tooltip": "Forzar un intento de reconexión a la(s) instancia(s) de OBS seleccionada(s)"
+	},
 	"dev.theca11.multiobs.rawrequest": {
 		"Name": "Petición WS",
 		"Tooltip": "[Avanzado] Enviar una petición WS de bajo nivel"
