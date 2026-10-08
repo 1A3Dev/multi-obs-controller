@@ -214,6 +214,7 @@ function serverRowHtml(server = {}) {
 	const secureChecked = server.secure === 'true' ? 'checked' : '';
 	const irltkId = `serverIrltk-${serverRowNonce++}`;
 	const secureId = `serverSecure-${serverRowNonce++}`;
+	const retryInterval = escapeHtml(server.retryIntervalS || '');
 	const pinnedIngests = Array.isArray(server.ingestPinned)
 		? server.ingestPinned
 		: server.ingestPinned ? [server.ingestPinned] : [''];
@@ -254,6 +255,10 @@ function serverRowHtml(server = {}) {
 			<div class="field-label"></div>
 			<input id="${secureId}" type="checkbox" name="serverSecure" value="true" ${secureChecked}>
 			<label for="${secureId}" title="Connect via a secure WebSocket (wss://) instead of ws:// - only needed if the OBS WebSocket server is behind TLS, e.g. a reverse proxy"><span></span>Secure connection (wss://)</label>
+		</div>
+		<div class="server-row-line">
+			<div class="field-label">Retry (s)</div>
+			<input type="number" name="serverRetryInterval" value="${retryInterval}" min="2" max="30" placeholder="10" title="How often to retry connecting while this server is disconnected, in seconds (2-30, default 10)">
 		</div>
 		<div class="server-row-line">
 			<div class="field-label"></div>
@@ -463,6 +468,7 @@ function serializeFormValue(formEl) {
 	const { serverName, serverIp, serverPort, serverPwd, ...rest } = getFormValue(formEl);
 	delete rest.serverIrltk;
 	delete rest.serverSecure;
+	delete rest.serverRetryInterval;
 	delete rest.ingestPinned;
 	delete rest.ingestSceneIngest;
 	delete rest.ingestSceneScene;
@@ -485,6 +491,7 @@ function serializeFormValue(formEl) {
 			pwd: pwds[i] || '',
 			irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
 			secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
+			retryIntervalS: row.querySelector('input[name="serverRetryInterval"]').value || undefined,
 			ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
 			ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({
 				ingest: r.querySelector('input[name="ingestSceneIngest"]').value,

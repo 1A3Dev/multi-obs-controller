@@ -14,10 +14,10 @@ $SD.onConnected(({ appInfo }: any) => {
 	SDUtils.log(`Stream Deck connected (v${appInfo.application.version}) | ${appInfo.application.platform} ${appInfo.application.platformVersion} | Plugin version ${appInfo.plugin.version}`);
 	$SD.getGlobalSettings();
 
-	// Check OBS WS connections every 10s
+	// Check OBS WS connections every second - each socket only retries once its own retry interval has elapsed
 	setInterval(() => {
 		sockets.forEach(socket => socket.tryConnect());
-	}, 10 * 1000);
+	}, 1000);
 });
 
 // Global settings received
@@ -28,6 +28,7 @@ $SD.onDidReceiveGlobalSettings(({ payload }: DidReceiveGlobalSettingsData<Global
 	sockets.forEach((socket, idx) => {
 		const server = servers[idx];
 		socket.updateSettings(server?.ip ?? '', server?.port ?? '', server?.pwd, server?.secure === 'true');
+		socket.setRetryInterval(server?.retryIntervalS);
 	});
 
 	if (!settings.servers?.length || settings.servers.some((server) => !server.id)) {

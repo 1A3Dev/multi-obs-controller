@@ -71,6 +71,7 @@ export type ServerConfig = {
 	port?: string,
 	pwd?: string,
 	secure?: 'true',
+	retryIntervalS?: string,
 	irltk?: 'true',
 	ingestPinned?: string | string[],
 	ingestSceneMap?: { ingest?: string, scene?: string }[],

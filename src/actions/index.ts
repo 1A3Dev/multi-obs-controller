@@ -15,6 +15,7 @@ export { PauseRecordAction } from './pauserecord/PauseRecordAction';
 export { PreviousProfileAction } from './previousprofile/PreviousProfileAction';
 export { RawBatchRequestAction } from './rawbatchrequest/RawBatchRequestAction';
 export { RawRequestAction } from './rawrequest/RawRequestAction';
+export { ReconnectAction } from './reconnect/ReconnectAction';
 export { RefreshBrowserSourceAction } from './refreshbrowsersource/RefreshBrowserSourceAction';
 export { RefreshCaptureDeviceAction } from './refreshcapturedevice/RefreshCaptureDeviceAction';
 export { SaveReplayBufferAction } from './savereplaybuffer/SaveReplayBufferAction';

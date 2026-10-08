@@ -173,6 +173,10 @@
 		"Name": "Stats",
 		"Tooltip": "Get general/stream/record stats"
 	},
+	"uk.1a3.multiobs.reconnect": {
+		"Name": "Reconnect",
+		"Tooltip": "Force a reconnection attempt to the targeted OBS instance(s)"
+	},
 	"uk.1a3.multiobs.rawrequest": {
 		"Name": "Raw WS Request",
 		"Tooltip": "[Advanced] Send a raw WS request"

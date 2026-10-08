@@ -3,6 +3,9 @@ import { MAX_SERVERS } from '../shared/constants';
 import { SDUtils } from './utils';
 
 const CONNECT_TIMEOUT_MS = 5000;
+const DEFAULT_RETRY_INTERVAL_S = 10;
+const MIN_RETRY_INTERVAL_S = 2;
+const MAX_RETRY_INTERVAL_S = 30;
 
 class Socket extends OBSWebSocket {
 	_ip;
@@ -10,6 +13,9 @@ class Socket extends OBSWebSocket {
 	_password;
 	_secure;
 	_isConnected = false;
+	private _pendingConnect: Promise<void> | undefined;
+	private _retryIntervalMs = DEFAULT_RETRY_INTERVAL_S * 1000;
+	private _nextAttemptAt = 0;
 
 	constructor(ip?: string, port?: string | number, password?: string, secure?: boolean) {
 		super();
@@ -23,6 +29,7 @@ class Socket extends OBSWebSocket {
 
 		this.on('Identified', () => {
 			this._isConnected = true;
+			this._nextAttemptAt = 0;
 			const logStr = `[CONNECTED] OBS Websocket server at ${this._ip}:${this._port}`;
 			SDUtils.logDebug(`Identified to WS server at ${this._ip}:${this._port}`);
 			SDUtils.log(logStr);
@@ -58,12 +65,35 @@ class Socket extends OBSWebSocket {
 	}
 
 	/**
-	 * Connect WS, if not already connected and if valid ip/port
+	 * Connect WS, if not already connected, if valid ip/port and if the retry interval since the last failed attempt has elapsed
 	 */
 	tryConnect() {
-		if (this._isConnected || !this._ip || !this._port) return;
-		this._connectWithTimeout()
-		.catch(() => { /* Error while connecting - logs on socket events */ });
+		if (this._isConnected || this._pendingConnect || !this._ip || !this._port) return;
+		if (Date.now() < this._nextAttemptAt) return;
+		this._attemptConnect();
+	}
+
+	/**
+	 * Connect and schedule the next retry on failure
+	 */
+	private _attemptConnect() {
+		this._pendingConnect = this._connectWithTimeout()
+		.catch(() => {
+			// Error while connecting - logs on socket events
+			this._nextAttemptAt = Date.now() + this._retryIntervalMs;
+		})
+		.finally(() => { this._pendingConnect = undefined; });
+	}
+
+	/**
+	 * Set how often this server is retried while disconnected, clamped to 5-30s (defaults to 10s if invalid)
+	 */
+	setRetryInterval(seconds: string | number | undefined) {
+		const parsed = Number(seconds);
+		const s = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.max(parsed, MIN_RETRY_INTERVAL_S), MAX_RETRY_INTERVAL_S) : DEFAULT_RETRY_INTERVAL_S;
+		this._retryIntervalMs = s * 1000;
+		// Apply a shorter interval to the pending wait right away
+		if (this._nextAttemptAt) this._nextAttemptAt = Math.min(this._nextAttemptAt, Date.now() + this._retryIntervalMs);
 	}
 
 	private async _connectWithTimeout() {
@@ -81,6 +111,8 @@ class Socket extends OBSWebSocket {
 	 */
 	async tryReconnect() {
 		await this.disconnect().catch(() => { /* Error while disconnecting */ });
+		await this._pendingConnect;	// let an aborted in-flight attempt settle, so its failure doesn't delay this one
+		this._nextAttemptAt = 0;
 		this.tryConnect();
 	}
 
@@ -98,11 +130,11 @@ class Socket extends OBSWebSocket {
 			this._password = password;
 			this._secure = secure;
 			if (!this._ip || !this._port) {
+				this._nextAttemptAt = 0;
 				this.disconnect().catch(() => { /* Error while disconnecting */ });
 			}
 			else {
-				this._connectWithTimeout()
-				.catch(() => { /* Error while connecting - logs on socket events */ });
+				this.tryReconnect().catch(() => { /* Error while reconnecting - logs on socket events */ });
 			}
 		}
 	}
