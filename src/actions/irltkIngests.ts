@@ -197,6 +197,13 @@ function isIngestOnlineWithGrace(ingest: IrltkIngest, ingestThresholds: IngestTh
 	return lastOnline !== undefined && Date.now() - lastOnline < OFFLINE_GRACE_MS;
 }
 
+export function isIngestSourceOnline(socketIdx: number, sourceName: string): boolean | undefined {
+	const ingests = ingestsBySource[socketIdx];
+	if (!ingests.size) return undefined;
+	const ingest = ingests.get(sourceName);
+	return !!ingest && isIngestOnlineWithGrace(ingest, thresholds[socketIdx], socketIdx);
+}
+
 function sortIngestsOnlineFirst(ingests: IrltkIngest[], ingestThresholds: IngestThresholds, socketIdx: number): IrltkIngest[] {
 	const online = ingests.filter(i => isIngestOnlineWithGrace(i, ingestThresholds, socketIdx));
 	const offline = ingests.filter(i => !isIngestOnlineWithGrace(i, ingestThresholds, socketIdx));

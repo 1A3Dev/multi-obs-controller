@@ -230,6 +230,8 @@
 		"Ingest Alias": "Ingest Alias",
 		"Show mapped ingest alias": "Show mapped ingest alias",
 		"Use ingest alias tooltip": "If an ingest is mapped to the scene (in the server's Ingest → Scene settings) and that ingest has an alias set, show the alias on the screen instead of the scene name",
+		"Hide scenes with offline ingest": "Hide scenes with offline ingest",
+		"Hide offline ingest scenes tooltip": "Skip scenes whose mapped ingests (in the server's Ingest → Scene settings) are all offline. The live scene and the scene currently picked on the dial are kept and marked as offline",
 		"Source": "Source",
 		"Multi Action": "Multi Action",
 		"Ignore state, toggle instead": "Ignore state, toggle instead",

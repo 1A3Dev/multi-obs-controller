@@ -2,13 +2,13 @@ import { sockets } from '../../plugin/sockets';
 import { AbstractStatefulAction } from '../BaseWsAction';
 import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getLastKnownIngestNames, onIngestsUpdated } from '../irltkIngests';
+import { getLastKnownIngestNames, isIngestSourceOnline, onIngestsUpdated } from '../irltkIngests';
 import { getScenesLists } from '../lists';
 import { ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
 
-type ActionSettings = { studioTarget?: 'preview' | 'program', useIngestAlias?: 'true', sceneOrder?: string | string[] } & Record<string, string | string[] | undefined>;
+type ActionSettings = { studioTarget?: 'preview' | 'program', useIngestAlias?: 'true', hideOfflineIngestScenes?: 'true', sceneOrder?: string | string[] } & Record<string, string | string[] | undefined>;
 type Scene = { sceneName: string };
-type FilteredScene = { sceneName: string };
+type FilteredScene = { sceneName: string, offline: boolean };
 
 export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSettings, 'StudioModeStateChanged'> {
 	private _scenesCache: (string[] | undefined)[] = new Array(sockets.length).fill(undefined);
@@ -31,9 +31,9 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 
 			settings.forEach((socketSettings, socketIdx) => {
 				if (!socketSettings) return;
-				const filtered = this._getFilteredScenes(socketSettings, socketIdx);
+				const filtered = this._getFilteredScenes(socketSettings, socketIdx, context);
 				if (!filtered.length) return;
-				const currentName = selectedCache[socketIdx] ?? this._getLiveSceneName(socketSettings, socketIdx);
+				const currentName = this._getSelectedSceneName(context, socketSettings, socketIdx, filtered);
 				const currentIdx = Math.max(0, filtered.findIndex(s => s.sceneName === currentName));
 				const newIdx = ((currentIdx + payload.ticks) % filtered.length + filtered.length) % filtered.length;
 				selectedCache[socketIdx] = filtered[newIdx].sceneName;
@@ -46,10 +46,9 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 			if (!this.contexts.has(context)) return;
 			const { settings, displayIdx } = this.contexts.get(context)!;
 			this._warnIfDisconnected(context, settings);
-			const selectedCache = this._selectedSceneCache.get(context);
 			await Promise.allSettled(settings.map(async (socketSettings, socketIdx) => {
 				if (!socketSettings || !sockets[socketIdx].isConnected) return;
-				const sceneName = selectedCache?.[socketIdx] ?? this._getLiveSceneName(socketSettings, socketIdx);
+				const sceneName = this._getSelectedSceneName(context, socketSettings, socketIdx, this._getFilteredScenes(socketSettings, socketIdx, context));
 				if (!sceneName) return;
 				if (socketSettings.studioTarget === 'program') {
 					await sockets[socketIdx].call('SetCurrentProgramScene', { sceneName });
@@ -103,10 +102,12 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 			}
 		});
 
-		// Ingest names (needed to look up aliases) are only learned from IRLToolkit status updates
+		// Ingest names (needed to look up aliases) and online states are only learned from IRLToolkit status updates
 		onIngestsUpdated((socketIdx) => {
 			for (const [context, { settings, displayIdx }] of this.contexts) {
-				if (displayIdx === socketIdx && settings[socketIdx]?.useIngestAlias === 'true') this._updateDialFeedback(context, displayIdx);
+				if (displayIdx !== socketIdx) continue;
+				const socketSettings = settings[socketIdx];
+				if (socketSettings?.useIngestAlias === 'true' || socketSettings?.hideOfflineIngestScenes === 'true') this._updateDialFeedback(context, displayIdx);
 			}
 		});
 	}
@@ -174,15 +175,40 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		return socketSettings?.studioTarget === 'program' ? this._currentProgramSceneName[socketIdx] : this._currentPreviewSceneName[socketIdx];
 	}
 
-	/** Scenes in the custom order first, then any not in it (e.g. newly added) in their OBS order - keep in sync with pi.js orderSceneNames */
-	private _getFilteredScenes(socketSettings: SocketSettings<ActionSettings>, socketIdx: number): FilteredScene[] {
+	/** The scene picked by rotating, or the live scene if nothing is picked - a picked scene that no longer exists in the list (e.g. deleted) is dropped */
+	private _getSelectedSceneName(context: string, socketSettings: SocketSettings<ActionSettings> | null, socketIdx: number, filtered: FilteredScene[]): string | undefined {
+		const selectedCache = this._selectedSceneCache.get(context);
+		const selected = selectedCache?.[socketIdx];
+		if (selected !== undefined && !filtered.some(s => s.sceneName === selected)) selectedCache![socketIdx] = undefined;
+		return selectedCache?.[socketIdx] ?? this._getLiveSceneName(socketSettings, socketIdx);
+	}
+
+	/**
+	 * Scenes in the custom order first, then any not in it (e.g. newly added) in their OBS order - keep in sync with pi.js orderSceneNames
+	 * - scenes with an offline mapped ingest are hidden (if enabled), except the live scene and the one currently picked on the dial
+	 */
+	private _getFilteredScenes(socketSettings: SocketSettings<ActionSettings>, socketIdx: number, context?: string): FilteredScene[] {
 		const scenes = this._scenesCache[socketIdx] ?? [];
 		const sceneOrderSetting = socketSettings?.sceneOrder;
 		const sceneOrder = (Array.isArray(sceneOrderSetting) ? sceneOrderSetting : sceneOrderSetting ? [sceneOrderSetting] : [])
 		.filter(sceneName => scenes.includes(sceneName));
+		const hideOffline = socketSettings?.hideOfflineIngestScenes === 'true';
+		const keptSceneNames = [this._getLiveSceneName(socketSettings, socketIdx), context ? this._selectedSceneCache.get(context)?.[socketIdx] : undefined];
 		return [...sceneOrder, ...scenes.filter(sceneName => !sceneOrder.includes(sceneName))]
 		.filter(sceneName => socketSettings?.[`exclude__${sceneName}`] !== 'true')
-		.map(sceneName => ({ sceneName }));
+		.map(sceneName => ({ sceneName, offline: hideOffline && this._isMappedIngestOffline(sceneName, socketIdx) }))
+		.filter(({ sceneName, offline }) => !offline || keptSceneNames.includes(sceneName));
+	}
+
+	/** True if the scene has ingests mapped in the server's Ingest → Scene map and none of them are online */
+	private _isMappedIngestOffline(sceneName: string, socketIdx: number): boolean {
+		const server = resolveServers(globalSettings)[socketIdx];
+		const mappedIngests = server?.ingestSceneMap?.filter(m => m.scene === sceneName && m.ingest).map(m => m.ingest!) ?? [];
+		if (!mappedIngests.length) return false;
+		const states = mappedIngests.map(ingest => isIngestSourceOnline(socketIdx, ingest));
+		// No IRLToolkit status yet, so the online state is unknown
+		if (states.includes(undefined)) return false;
+		return !states.includes(true);
 	}
 
 	/** Alias of the ingest mapped to this scene in the server's Ingest → Scene map, if one is set */
@@ -212,7 +238,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		const target = socketSettings?.studioTarget === 'program' ? 'program' : 'preview';
 		const title = target === 'program' ? 'Program' : 'Preview';
 
-		const filtered = socketSettings ? this._getFilteredScenes(socketSettings, displayIdx) : [];
+		const filtered = socketSettings ? this._getFilteredScenes(socketSettings, displayIdx, context) : [];
 		if (!filtered.length) {
 			$SD.setFeedback(context, this._dimFeedback({ status: '', title, value: 'No Scenes', indicator: 0 }, displayIdx));
 			return;
@@ -221,14 +247,15 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 			$SD.setFeedback(context, this._dimFeedback({ status: '', title, value: 'Studio Mode Off', indicator: 0 }, displayIdx));
 			return;
 		}
-		const currentName = this._selectedSceneCache.get(context)?.[displayIdx] ?? this._getLiveSceneName(socketSettings, displayIdx);
+		const currentName = this._getSelectedSceneName(context, socketSettings, displayIdx, filtered);
 		const idx = Math.max(0, filtered.findIndex(s => s.sceneName === currentName));
 		const percent = filtered.length > 1 ? Math.round((idx / (filtered.length - 1)) * 100) : 100;
-		const { sceneName } = filtered[idx];
+		const { sceneName, offline } = filtered[idx];
 		const isLive = sceneName === this._getLiveSceneName(socketSettings, displayIdx);
 		const alias = socketSettings?.useIngestAlias === 'true' ? this._getMappedIngestAlias(sceneName, displayIdx) : undefined;
+		const status = [isLive ? '● SELECTED' : '', offline ? 'OFFLINE' : ''].filter(Boolean).join(' · ');
 		$SD.setFeedback(context, this._dimFeedback({
-			status: isLive ? '● SELECTED' : '',
+			status: { value: status, color: offline ? '#e04848' : '#3ac97a' },
 			title,
 			value: alias ?? sceneName,
 			indicator: percent,

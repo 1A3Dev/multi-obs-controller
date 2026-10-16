@@ -229,6 +229,8 @@
 		"Ingest Alias": "Alias de ingesta",
 		"Show mapped ingest alias": "Mostrar alias de ingesta asignada",
 		"Use ingest alias tooltip": "Si una ingesta está asignada a la escena y esa ingesta tiene un alias, mostrar el alias en la pantalla en lugar del nombre de la escena",
+		"Hide scenes with offline ingest": "Ocultar escenas con ingesta desconectada",
+		"Hide offline ingest scenes tooltip": "Omitir las escenas cuyas ingestas asignadas (en los ajustes Ingesta → Escena del servidor) estén todas desconectadas. La escena en vivo y la escena seleccionada en el dial se mantienen y se marcan como desconectadas",
 		"Source": "Fuente",
 		"Collection": "Colección",
 		"Profile": "Perfil",
