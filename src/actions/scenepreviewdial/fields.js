@@ -13,6 +13,13 @@ export const fields = `
 		<label for="useIngestAlias" style="white-space: nowrap; margin: 0; display: flex; align-items: center;"><span></span>${$PI.localize('Show mapped ingest alias')}</label>
 	</div>
 </div>
+<div class="sdpi-item" title="${$PI.localize('Hide offline ingest scenes tooltip')}">
+	<div class="sdpi-item-label empty"></div>
+	<div class="sdpi-item-value">
+		<input type="checkbox" id="hideOfflineIngestScenes" name="hideOfflineIngestScenes" value="true">
+		<label for="hideOfflineIngestScenes" style="white-space: nowrap; margin: 0; display: flex; align-items: center;"><span></span>${$PI.localize('Hide scenes with offline ingest')}</label>
+	</div>
+</div>
 <div class="sdpi-item" title="${$PI.localize('Scene exclude tooltip')}">
 	<div class="sdpi-item-label" data-i18n>${$PI.localize('Scenes')}</div>
 	<div class="sdpi-item-value" style="font-size: 11px; opacity: 0.7; align-items: center;" data-i18n>${$PI.localize('Exclude or reorder scenes on the dial')}</div>
