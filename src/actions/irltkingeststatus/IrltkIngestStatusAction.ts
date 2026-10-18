@@ -6,7 +6,7 @@ import { BITRATE_HISTORY_LENGTH, getBitrateHistory, getIngestDisplayName, getIng
 import { getTvuBatteryPercent, onTvuBatteryUpdated, setTvuDeviceLink } from '../tvuBattery';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
-type ActionSettings = IrltkTargetSettings & { titleTemplate?: string, tvuDevice?: string, showBitrateGraph?: 'true' }
+type ActionSettings = IrltkTargetSettings & { titleTemplate?: string, tvuDevice?: string, bitrateGraph?: 'hide' }
 
 const enum KeyState {
 	Online = 0,
@@ -117,7 +117,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 	private _updateGraphImage(context: string, contextData: ContextData<ActionSettings>, keyState: Exclude<KeyState, KeyState.Disconnected>): void {
 		const { displayIdx, settings } = contextData;
 		const socketSettings = settings[displayIdx];
-		const ingest = socketSettings?.showBitrateGraph === 'true' && hasIngestTarget(socketSettings)
+		const ingest = socketSettings && socketSettings.bitrateGraph !== 'hide' && hasIngestTarget(socketSettings)
 			? resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx))
 			: undefined;
 		const samples = ingest ? getBitrateHistory(displayIdx, ingest.obs_source_name) : [];
