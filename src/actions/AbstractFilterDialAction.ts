@@ -11,7 +11,14 @@ type FilterEntry = { filterName: string, filterEnabled: boolean };
 type SourceFilters = { sourceName: string, filters: FilterEntry[] };
 
 /** Base for dials that browse every filter of one source: rotate to pick a filter, push or tap the screen to toggle it */
-export abstract class AbstractFilterDialAction<T extends Record<string, unknown>> extends AbstractStatelessAction<T> {
+export type FilterDialSettings = { excludedFilters?: string };
+
+/** Filter names to hide from the dial, one per line, matched case-insensitively */
+function parseExcludedFilters(excludedFilters: string | undefined): Set<string> {
+	return new Set((excludedFilters ?? '').split('\n').map(name => name.trim().toLowerCase()).filter(Boolean));
+}
+
+export abstract class AbstractFilterDialAction<T extends Record<string, unknown> & FilterDialSettings> extends AbstractStatelessAction<T> {
 	private _filterCache = new Map<string, (SourceFilters | undefined)[]>();	// <context, filters per socket>
 	private _selectedFilter = new Map<string, string>();	// <context, filter name picked on the dial>
 
@@ -105,16 +112,20 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 	private async _refreshTarget(context: string, socketIdx: number): Promise<void> {
 		const cache = this._filterCache.get(context);
 		if (!cache) return;
-		const sourceName = this.resolveSourceName(socketIdx, this.contexts.get(context)?.settings[socketIdx]);
+		const socketSettings = this.contexts.get(context)?.settings[socketIdx];
+		const sourceName = this.resolveSourceName(socketIdx, socketSettings);
 		if (!sourceName || !sockets[socketIdx].isConnected) {
 			cache[socketIdx] = undefined;
 			return;
 		}
 		// Empty list if the source doesn't exist (yet) - still cached, so it isn't refetched until the source changes
 		const filters = await getSourceFilterList(socketIdx, sourceName);
+		const excluded = parseExcludedFilters(socketSettings?.excludedFilters);
 		cache[socketIdx] = {
 			sourceName,
-			filters: filters.map(f => ({ filterName: String(f.filterName), filterEnabled: !!f.filterEnabled })),
+			filters: filters
+			.map(f => ({ filterName: String(f.filterName), filterEnabled: !!f.filterEnabled }))
+			.filter(f => !excluded.has(f.filterName.toLowerCase())),
 		};
 	}
 

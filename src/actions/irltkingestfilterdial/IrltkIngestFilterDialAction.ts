@@ -1,10 +1,10 @@
 import { sockets } from '../../plugin/sockets';
-import { AbstractFilterDialAction } from '../AbstractFilterDialAction';
+import { AbstractFilterDialAction, FilterDialSettings } from '../AbstractFilterDialAction';
 import { globalSettings, resolveServers } from '../globalSettings';
 import { getIngestDisplayName, getIngests, getThresholds, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { SocketSettings } from '../types';
 
-type ActionSettings = IrltkTargetSettings;
+type ActionSettings = IrltkTargetSettings & FilterDialSettings;
 
 export class IrltkIngestFilterDialAction extends AbstractFilterDialAction<ActionSettings> {
 	constructor() {
