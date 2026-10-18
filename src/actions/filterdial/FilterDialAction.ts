@@ -6,7 +6,7 @@ type ActionSettings = { sourceName: string };
 
 export class FilterDialAction extends AbstractFilterDialAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.filterdial');
+		super('uk.1a3.multiobs.filterdial');
 	}
 
 	protected resolveSourceName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {

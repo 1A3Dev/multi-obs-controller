@@ -14,7 +14,7 @@ function renderFilterOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.irltkingestfilter', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingestfilter', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
 	const { event, ingestsLists, pagingActive, filterList } = payload;
 
 	if (event === 'IngestListLoaded') {

@@ -1,6 +1,6 @@
 import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('dev.theca11.multiobs.filterdial', replayOnTargetChange(['SourceListLoaded'], ({ payload }) => {
+$PI.onSendToPropertyInspector('uk.1a3.multiobs.filterdial', replayOnTargetChange(['SourceListLoaded'], ({ payload }) => {
 	const { event, scenesLists, inputsLists } = payload;
 
 	if (event === 'SourceListLoaded') {

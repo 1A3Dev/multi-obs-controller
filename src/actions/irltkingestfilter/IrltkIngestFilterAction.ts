@@ -16,7 +16,7 @@ export class IrltkIngestFilterAction extends AbstractStatefulRequestAction<Actio
 	private _lastResolvedSources = new Map<string, (string | undefined)[]>();	// <context, resolved ingest source per socket>
 
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestfilter', { titleParam: 'filterName', statusEvent: 'SourceFilterEnableStateChanged' });
+		super('uk.1a3.multiobs.irltkingestfilter', { titleParam: 'filterName', statusEvent: 'SourceFilterEnableStateChanged' });
 
 		this.onSendToPlugin(async ({ payload, context, action }: SendToPluginData<{ event: string, socketIdx: number, sourceName?: string }>) => {
 			if (payload.event === 'GetIngestFilterList') {

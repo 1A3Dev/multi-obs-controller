@@ -8,7 +8,7 @@ type ActionSettings = IrltkTargetSettings;
 
 export class IrltkIngestFilterDialAction extends AbstractFilterDialAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestfilterdial');
+		super('uk.1a3.multiobs.irltkingestfilterdial');
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));
 		onIngestPageChanged((socketIdx) => this.notifyTargetsChanged(socketIdx));
