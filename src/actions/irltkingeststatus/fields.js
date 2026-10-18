@@ -23,11 +23,13 @@ export const fields = `
 		</span>
 	</div>
 </div>
-<div type="checkbox" class="sdpi-item" title="${$PI.localize('Draw a graph of the ingest\'s bitrate over the last minute on the key, coloured by its status')}">
+<div type="radio" class="sdpi-item" title="${$PI.localize('Draw a graph of the ingest\'s bitrate over the last minute on the key, coloured by its status')}">
 	<div class="sdpi-item-label" data-i18n>Bitrate Graph</div>
 	<div class="sdpi-item-value">
-		<input type="checkbox" id="showBitrateGraph" name="showBitrateGraph" value="true">
-		<label for="showBitrateGraph"><span></span>${$PI.localize('Show')}</label>
+		<input id="bitrateGraphShow" type="radio" name="bitrateGraph" value="" checked>
+		<label for="bitrateGraphShow" data-i18n><span></span>Show</label>
+		<input id="bitrateGraphHide" type="radio" name="bitrateGraph" value="hide">
+		<label for="bitrateGraphHide" data-i18n><span></span>Hide</label>
 	</div>
 </div>
 <div class="sdpi-item" title="${$PI.localize('Name, ID or Peer ID of a TVU pack (as returned by your TVU account) to link to this ingest. Its battery level becomes available as the {battery} title variable, refreshed about once a minute. Leave blank for no link.')}">
