@@ -349,6 +349,27 @@
 			}
 		},
 		{
+			"UUID": "uk.1a3.multiobs.filterdial",
+			"Icon": "assets/actions/filterdial/icon",
+			"Name": "Filter Dial",
+			"Tooltip": "Browse every filter of a scene/source with a Stream Deck + dial, and push or tap the screen to enable/disable the selected one",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/filterdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/filterdial/icon",
+				"layout": "actions/filterdial/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Select filter",
+					"Push": "Enable/disable filter",
+					"Touch": "Enable/disable filter"
+				}
+			}
+		},
+		{
 			"UUID": "uk.1a3.multiobs.togglestudiomode",
 			"Icon": "assets/actions/togglestudiomode/icon",
 			"Name": "Studio Mode",
@@ -587,6 +608,44 @@
 				}
 			],
 			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "uk.1a3.multiobs.irltkingestfilter",
+			"Icon": "assets/actions/irltkingestfilter/icon",
+			"Name": "IRLToolkit Ingest Filter",
+			"Tooltip": "Enable/disable a filter on an IRLToolkit ingest player, targeting either a specific ingest or a dynamic position in the sorted ingest list (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestfilter/key_on",
+					"Name": "Enable"
+				},
+				{
+					"Image": "assets/actions/irltkingestfilter/key_off",
+					"Name": "Disable"
+				}
+			],
+			"DisableAutomaticStates": true
+		},
+		{
+			"UUID": "uk.1a3.multiobs.irltkingestfilterdial",
+			"Icon": "assets/actions/irltkingestfilterdial/icon",
+			"Name": "IRLToolkit Ingest Filter Dial",
+			"Tooltip": "Browse every filter of an IRLToolkit ingest player with a Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list, and push or tap the screen to enable/disable the selected one (Cloud OBS only)",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestfilterdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/irltkingestfilterdial/icon",
+				"layout": "actions/filterdial/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Select filter",
+					"Push": "Enable/disable filter",
+					"Touch": "Enable/disable filter"
+				}
+			}
 		},
 		{
 			"UUID": "uk.1a3.multiobs.irltkingestpageprev",
