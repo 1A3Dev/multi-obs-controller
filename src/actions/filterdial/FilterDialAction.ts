@@ -1,8 +1,8 @@
-import { AbstractFilterDialAction } from '../AbstractFilterDialAction';
+import { AbstractFilterDialAction, FilterDialSettings } from '../AbstractFilterDialAction';
 import { getInputsLists, getScenesLists } from '../lists';
 import { SocketSettings } from '../types';
 
-type ActionSettings = { sourceName: string };
+type ActionSettings = FilterDialSettings & { sourceName: string };
 
 export class FilterDialAction extends AbstractFilterDialAction<ActionSettings> {
 	constructor() {
