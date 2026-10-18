@@ -2,17 +2,46 @@ import { sockets } from '../../plugin/sockets';
 import { AbstractStatelessRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getIngestDisplayName, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestOnline, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { BITRATE_HISTORY_LENGTH, getBitrateHistory, getIngestDisplayName, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestOnline, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { getTvuBatteryPercent, onTvuBatteryUpdated, setTvuDeviceLink } from '../tvuBattery';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
-type ActionSettings = IrltkTargetSettings & { titleTemplate?: string, tvuDevice?: string }
+type ActionSettings = IrltkTargetSettings & { titleTemplate?: string, tvuDevice?: string, showBitrateGraph?: 'true' }
 
 const enum KeyState {
 	Online = 0,
 	LowBitrate = 1,
 	Offline = 2,
 	Disconnected = 3,
+}
+
+const KEY_COLORS = {
+	[KeyState.Online]: '#28d629',
+	[KeyState.LowBitrate]: '#fcdc1b',
+	[KeyState.Offline]: '#f61011',
+};
+
+const GRAPH = { left: 16, right: 128, top: 28, bottom: 128 };
+
+function renderGraphKey(samples: number[], color: string): string {
+	let graph = '';
+	if (samples.length >= 2) {
+		const max = Math.max(...samples, 1) * 1.1;
+		const step = (GRAPH.right - GRAPH.left) / (BITRATE_HISTORY_LENGTH - 1);
+		const points = samples.map((value, i) => {
+			const x = GRAPH.right - (samples.length - 1 - i) * step;
+			const y = GRAPH.bottom - (value / max) * (GRAPH.bottom - GRAPH.top);
+			return `${x.toFixed(1)},${y.toFixed(1)}`;
+		});
+		const [firstX] = points[0].split(',');
+		graph = `<polygon points="${firstX},${GRAPH.bottom} ${points.join(' ')} ${GRAPH.right},${GRAPH.bottom}" fill="${color}" fill-opacity="0.25"/>`
+			+ `<polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+	}
+	return '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">'
+		+ '<rect x="0" y="0" width="144" height="144" fill="#000"/>'
+		+ graph
+		+ `<rect x="10" y="10" width="124" height="124" rx="12" fill="none" stroke="${color}" stroke-width="4"/>`
+		+ '</svg>';
 }
 
 export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<ActionSettings> {
@@ -82,6 +111,22 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 				: state === StateEnum.Unavailable ? KeyState.Disconnected
 					: KeyState.Offline;
 		$SD.setState(context, keyState);
+		if (keyState !== KeyState.Disconnected) this._updateGraphImage(context, contextData as ContextData<ActionSettings>, keyState);
+	}
+
+	private _updateGraphImage(context: string, contextData: ContextData<ActionSettings>, keyState: Exclude<KeyState, KeyState.Disconnected>): void {
+		const { displayIdx, settings } = contextData;
+		const socketSettings = settings[displayIdx];
+		const ingest = socketSettings?.showBitrateGraph === 'true' && hasIngestTarget(socketSettings)
+			? resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx))
+			: undefined;
+		const samples = ingest ? getBitrateHistory(displayIdx, ingest.obs_source_name) : [];
+		if (!ingest || samples.every(value => value <= 0)) {
+			$SD.setImage(context, undefined, keyState);
+			return;
+		}
+		const svg = renderGraphKey(samples, KEY_COLORS[keyState]);
+		$SD.setImage(context, `data:image/svg+xml;base64,${btoa(svg)}`, keyState);
 	}
 
 	private _computeState(socketIdx: number, socketSettings: ActionSettings): StateEnum.Active | StateEnum.Intermediate | StateEnum.Inactive {

@@ -55,6 +55,9 @@ const lastSeenIngest: Map<string, IrltkIngest>[] = new Array(sockets.length).fil
 
 const lastKnownIngestNames: Map<string, string>[] = new Array(sockets.length).fill(null).map(() => new Map());
 
+export const BITRATE_HISTORY_LENGTH = 30;
+const bitrateHistory: Map<string, number[]>[] = new Array(sockets.length).fill(null).map(() => new Map());
+
 const currentPage: number[] = new Array(sockets.length).fill(1);
 const pageListeners = new Set<(socketIdx: number) => void>();
 
@@ -121,6 +124,17 @@ sockets.forEach((socket, socketIdx) => {
 		});
 		ingestsBySource[socketIdx] = merged;
 
+		const history = bitrateHistory[socketIdx];
+		merged.forEach((ingest, name) => {
+			const samples = history.get(name) ?? [];
+			samples.push(ingest.router_bitrate);
+			if (samples.length > BITRATE_HISTORY_LENGTH) samples.splice(0, samples.length - BITRATE_HISTORY_LENGTH);
+			history.set(name, samples);
+		});
+		[...history.keys()].forEach(name => {
+			if (!merged.has(name)) history.delete(name);
+		});
+
 		const maxPage = getIngestPageCount(socketIdx);
 		const pageChanged = currentPage[socketIdx] > maxPage;
 		if (pageChanged) currentPage[socketIdx] = maxPage;
@@ -133,6 +147,7 @@ sockets.forEach((socket, socketIdx) => {
 		ingestsBySource[socketIdx] = new Map();
 		lastOnlineAt[socketIdx] = new Map();
 		lastSeenIngest[socketIdx] = new Map();
+		bitrateHistory[socketIdx] = new Map();
 		outputStatusBySocket[socketIdx] = undefined;
 		updateListeners.forEach(fn => fn(socketIdx));
 
@@ -170,6 +185,10 @@ export function getIngests(socketIdx: number): Map<string, IrltkIngest> {
 
 export function getLastKnownIngestNames(socketIdx: number): Map<string, string> {
 	return lastKnownIngestNames[socketIdx];
+}
+
+export function getBitrateHistory(socketIdx: number, sourceName: string): number[] {
+	return bitrateHistory[socketIdx].get(sourceName) ?? [];
 }
 
 export function getThresholds(socketIdx: number): IngestThresholds {
