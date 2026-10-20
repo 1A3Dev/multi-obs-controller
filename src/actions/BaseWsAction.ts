@@ -23,7 +23,7 @@ export function registerGlobalListsHandler(action: InstanceType<typeof Action>):
 				if (live.length) return live;
 				const server = servers[socketIdx];
 				return [...getLastKnownIngestNames(socketIdx)]
-				.filter(([, name]) => !!(server?.ingestAlias?.[name] ?? globalSettings[`ingestAlias__${name}`]))
+				.filter(([, name]) => !!server?.ingestAlias?.[name])
 				.map(([obs_source_name, name]) => ({ obs_source_name, name }));
 			});
 			const scenesLists = liveScenesLists.map((scenes, socketIdx) => {

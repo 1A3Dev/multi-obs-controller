@@ -230,7 +230,7 @@ function sortIngestsOnlineFirst(ingests: IrltkIngest[], ingestThresholds: Ingest
 }
 
 function getIngestCategoryRank(ingest: IrltkIngest, server: ServerConfig | undefined): number {
-	const category = server?.ingestCategory?.[ingest.name] ?? globalSettings[`ingestCategory__${ingest.name}`];
+	const category = server?.ingestCategory?.[ingest.name];
 	const rank = category ? INGEST_CATEGORIES.indexOf(category) : -1;
 	return rank !== -1 ? rank : INGEST_CATEGORIES.length;	// uncategorized last
 }
@@ -283,5 +283,22 @@ export function hasIngestTarget(settings: IrltkTargetSettings): boolean {
 }
 
 export function getIngestDisplayName(ingest: IrltkIngest, server?: ServerConfig): string {
-	return server?.ingestAlias?.[ingest.name] || globalSettings[`ingestAlias__${ingest.name}`] || ingest.name;
+	return server?.ingestAlias?.[ingest.name] || ingest.name;
+}
+
+/**
+ * The server's Ingest → Scene mapping, by OBS source name. While a streamer is set it comes from the
+ * streamer's linked scenes (matched case-insensitively by ingest name, via the last known name of
+ * each ingest source) instead of the mapping configured in General Configuration
+ */
+export function getIngestSceneMap(socketIdx: number): { ingest: string, scene: string }[] {
+	const server = resolveServers(globalSettings)[socketIdx];
+	if (server?.irltk !== 'true' || !server.streamer?.trim()) {
+		return (server?.ingestSceneMap ?? []).filter((m): m is { ingest: string, scene: string } => !!m.ingest && !!m.scene);
+	}
+	const sceneByName = new Map(Object.entries(server.ingestScene ?? {}).map(([name, scene]) => [name.toLowerCase(), scene]));
+	return [...lastKnownIngestNames[socketIdx]].flatMap(([source, name]) => {
+		const scene = sceneByName.get(name.toLowerCase());
+		return scene ? [{ ingest: source, scene }] : [];
+	});
 }

@@ -1,5 +1,5 @@
 import { INGEST_CATEGORIES, MAX_SERVERS } from '../shared/constants.js';
-import { genServerId, resolveServers } from '../shared/servers.js';
+import { fetchStreamerIngests, genServerId, parseStreamerIngests, resolveServers, stripGlobalIngestAliases } from '../shared/servers.js';
 import { FormUtils } from './utils.js';
 
 // Per-server live ingest/scene lists, used to (re)populate the Ingest -> Scene Mapping and Ingest
@@ -71,6 +71,29 @@ function ingestSceneRowHtml(ingest = '', scene = '') {
 		<button class="remove icon-button icon-remove" title="Remove"></button>
 	</div>
 	`;
+}
+
+/**
+ * Read-only row for a scene linked to an ingest in the streamer's settings (no input names, so it
+ * stays out of the form values - serialized from the row's data attributes instead)
+ * @param {string} name Ingest name
+ * @param {string} scene
+ */
+function streamerSceneRowHtml(name, scene) {
+	return `
+	<div class="server-row-line streamer-scene-row" data-name="${escapeHtml(name)}" data-scene="${escapeHtml(scene)}">
+		<div class="field-label"></div>
+		<input type="text" value="${escapeHtml(name)}" readonly style="flex: 1 0 0; min-width: 0;">
+		<input type="text" value="${escapeHtml(scene)}" readonly style="flex: 1 0 0; min-width: 0;">
+	</div>
+	`;
+}
+
+/**
+ * @param {Record<string, string> | undefined} ingestScene Ingest name -> scene
+ */
+function streamerSceneRowsHtml(ingestScene) {
+	return Object.entries(ingestScene ?? {}).map(([name, scene]) => streamerSceneRowHtml(name, scene)).join('');
 }
 
 const CATEGORY_OPTIONS = [
@@ -159,6 +182,92 @@ function refreshIngestSceneDatalists(serverRow) {
 	});
 }
 
+/**
+ * Streamer name whose settings drive this server's pinned ingests and aliases/categories, if any
+ * @param {HTMLElement} serverRow
+ */
+function getStreamerName(serverRow) {
+	if (!serverRow.querySelector('input[name="serverIrltk"]').checked) return '';
+	return serverRow.querySelector('input[name="serverStreamer"]').value.trim();
+}
+
+/**
+ * Make the fields filled in from the streamer's settings read-only while a streamer is set
+ * @param {HTMLElement} serverRow
+ */
+function applyStreamerLock(serverRow) {
+	const locked = !!getStreamerName(serverRow);
+	serverRow.classList.toggle('streamer-locked', locked);
+	serverRow.querySelectorAll('.server-pinned-ingests input, .server-ingest-aliases input').forEach((el) => { el.readOnly = locked; });
+	serverRow.querySelectorAll('.server-ingest-aliases select').forEach((el) => { el.disabled = locked; });
+	serverRow.querySelector('.refresh-streamer').disabled = !locked || serverRow.dataset.refreshing === 'true';
+}
+
+/**
+ * Replace a server's Pinned Ingests, Ingest Aliases & Categories and linked scene lists with streamer data
+ * @param {HTMLElement} serverRow
+ * @param {{ ingestPinned: string[], ingestAlias: Record<string, string>, ingestCategory: Record<string, string>, ingestScene: Record<string, string> }} data
+ * @param {number} fetchedAt
+ */
+function renderStreamerData(serverRow, { ingestPinned, ingestAlias, ingestCategory, ingestScene }, fetchedAt) {
+	serverRow.dataset.streamerFetchedAt = String(fetchedAt);
+	serverRow.querySelector('.pinned-ingest-items').innerHTML = (ingestPinned ?? []).map((name) => pinnedIngestRowHtml(name)).join('');
+	serverRow.querySelector('.streamer-scene-items').innerHTML = streamerSceneRowsHtml(ingestScene);
+	const names = [...new Set([...Object.keys(ingestAlias ?? {}), ...Object.keys(ingestCategory ?? {})])];
+	serverRow.querySelector('.ingest-alias-items').innerHTML = names
+	.map((name) => ingestAliasRowHtml(name, ingestAlias?.[name] || '', ingestCategory?.[name] || ''))
+	.join('');
+	refreshIngestAliasOverrideDatalists(serverRow);
+	applyStreamerLock(serverRow);
+}
+
+/**
+ * Re-fetch the streamer's settings for a server, replacing its Pinned Ingests (the streamer's own
+ * ingests) and Ingest Aliases & Categories (every ingest with a label/category) lists
+ * @param {HTMLElement} serverRow
+ */
+async function refreshStreamer(serverRow) {
+	const streamerName = getStreamerName(serverRow);
+	if (!streamerName || serverRow.dataset.refreshing === 'true') return;
+
+	const btn = serverRow.querySelector('.refresh-streamer');
+	serverRow.dataset.refreshing = 'true';
+	btn.textContent = 'Refreshing...';
+	applyStreamerLock(serverRow);
+	try {
+		const data = parseStreamerIngests(await fetchStreamerIngests(streamerName));
+		// Streamer was changed/cleared while fetching - drop the stale result
+		if (getStreamerName(serverRow) !== streamerName) return;
+
+		renderStreamerData(serverRow, data, Date.now());
+		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+	}
+	finally {
+		delete serverRow.dataset.refreshing;
+		btn.textContent = 'Refresh';
+		applyStreamerLock(serverRow);
+	}
+}
+
+/**
+ * Refresh every server with a streamer set, reporting all failures in a single alert
+ * @param {HTMLElement[]} serverRows
+ */
+async function refreshStreamers(serverRows) {
+	const targets = serverRows.filter((row) => getStreamerName(row));
+	const results = await Promise.allSettled(targets.map((row) => refreshStreamer(row)));
+	const names = getServerNames();
+	const allRows = Array.from(document.querySelectorAll('.server-row'));
+	const failures = results
+	.map((result, i) => ({ result, row: targets[i] }))
+	.filter(({ result }) => result.status === 'rejected')
+	.map(({ result, row }) => `${names[allRows.indexOf(row)] ?? 'Server'} (${getStreamerName(row)}): ${result.reason?.message ?? result.reason}`);
+	if (failures.length) {
+		console.error('Error refreshing streamer settings', failures);
+		window.alert(`Failed to refresh streamer settings:\n${failures.join('\n')}`);
+	}
+}
+
 let serverRowNonce = 0;
 
 const EXPANDED_SERVERS_KEY = 'multiObsController.expandedServers';
@@ -188,18 +297,24 @@ function setServerExpanded(row, expanded) {
  * IRLTK subsection dropdown, so the useful bits stay visible while things are collapsed
  */
 function refreshServerSummaries() {
-	document.querySelectorAll('.server-row').forEach((row) => {
+	const rows = Array.from(document.querySelectorAll('.server-row'));
+	document.querySelector('#refreshAllStreamers').disabled = !rows.some((row) => getStreamerName(row));
+	rows.forEach((row) => {
+		applyStreamerLock(row);
 		const ip = row.querySelector('input[name="serverIp"]').value.trim();
 		const port = row.querySelector('input[name="serverPort"]').value.trim();
 		const irltk = row.querySelector('input[name="serverIrltk"]').checked;
+		const streamer = getStreamerName(row);
 		const address = ip ? `${ip}${port ? `:${port}` : ''}` : 'Not configured';
-		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK` : address;
+		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK${streamer ? ` (${streamer})` : ''}` : address;
 
 		const setCount = (selector, count) => {
 			row.querySelector(`${selector} .count`).textContent = count ? `(${count})` : '';
 		};
 		setCount('.server-pinned-ingests', Array.from(row.querySelectorAll('input[name="ingestPinned"]')).filter((el) => el.value.trim()).length);
-		setCount('.server-ingest-scenes', Array.from(row.querySelectorAll('.ingest-scene-row')).filter((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim() || r.querySelector('input[name="ingestSceneScene"]').value.trim()).length);
+		setCount('.server-ingest-scenes', streamer
+			? row.querySelectorAll('.streamer-scene-row').length
+			: Array.from(row.querySelectorAll('.ingest-scene-row')).filter((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim() || r.querySelector('input[name="ingestSceneScene"]').value.trim()).length);
 		setCount('.server-ingest-aliases', Array.from(row.querySelectorAll('input[name="ingestAliasName"]')).filter((el) => el.value.trim()).length);
 	});
 }
@@ -214,10 +329,13 @@ function serverRowHtml(server = {}) {
 	const secureChecked = server.secure === 'true' ? 'checked' : '';
 	const irltkId = `serverIrltk-${serverRowNonce++}`;
 	const secureId = `serverSecure-${serverRowNonce++}`;
+	const exportSelectId = `serverExport-${serverRowNonce++}`;
 	const retryInterval = escapeHtml(server.retryIntervalS || '');
+	const streamer = escapeHtml(server.streamer || '');
+	const irltkOnlyStyle = checked ? '' : 'display: none;';
 	const pinnedIngests = Array.isArray(server.ingestPinned)
 		? server.ingestPinned
-		: server.ingestPinned ? [server.ingestPinned] : [''];
+		: server.ingestPinned ? [server.ingestPinned] : server.streamer ? [] : [''];
 	const pinnedIngestRows = pinnedIngests.map((value) => pinnedIngestRowHtml(value)).join('');
 	const ingestSceneMap = Array.isArray(server.ingestSceneMap) && server.ingestSceneMap.length
 		? server.ingestSceneMap
@@ -229,9 +347,11 @@ function serverRowHtml(server = {}) {
 	.join('');
 	const collapsed = expandedServerIds.has(id) ? '' : 'collapsed';
 	return `
-	<div class="server-row ${collapsed}" data-id="${id}">
+	<div class="server-row ${collapsed}" data-id="${id}" data-streamer-fetched-at="${Number(server.streamerFetchedAt) || ''}">
 		<div class="server-row-header">
 			<button class="toggle" title="Show/hide server settings"></button>
+			<input id="${exportSelectId}" class="export-select" type="checkbox" checked>
+			<label for="${exportSelectId}" class="export-select-label" title="Include this server when exporting"><span></span></label>
 			<input type="text" name="serverName" value="${name}" title="Custom display name for this OBS server, shown wherever a target OBS is picked">
 			<span class="server-row-summary"></span>
 			<div class="buttons">
@@ -265,29 +385,37 @@ function serverRowHtml(server = {}) {
 			<input id="${irltkId}" type="checkbox" name="serverIrltk" value="true" ${checked}>
 			<label for="${irltkId}" title="Managed by IRLToolkit - the only servers offered to IRLToolkit actions, and hidden from actions IRLToolkit itself disables"><span></span>Managed by IRLToolkit</label>
 		</div>
-		<details class="server-subsection server-pinned-ingests" style="${checked ? '' : 'display: none;'}">
+		<div class="server-row-line irltk-only" style="${irltkOnlyStyle}">
+			<div class="field-label">Streamer</div>
+			<input type="text" name="serverStreamer" value="${streamer}" placeholder="None" style="flex: 1 0 0;" title="Streamer name in the 1a3.uk userscript settings API. When set, this server's Pinned Ingests, Ingest Aliases &amp; Categories and Ingest → Scene Mapping come from that streamer's settings and are read-only here">
+			<button class="refresh-streamer" title="Re-fetch this streamer's settings, overwriting this server's Pinned Ingests and Ingest Aliases &amp; Categories">Refresh</button>
+		</div>
+		<details class="server-subsection server-pinned-ingests irltk-only" style="${irltkOnlyStyle}">
 			<summary title="Ingest names (as shown in IRLToolkit), sorted first within their category in this order, when using dynamic ingest position targeting on this server">Pinned Ingests <span class="count"></span></summary>
+			<div class="streamer-locked-note">Set from the streamer's settings - use Refresh to update.</div>
 			<div class="pinned-ingest-items">${pinnedIngestRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
-				<button class="import-streamer-ingests" title="Fetch a streamer's settings from the 1a3.uk userscript settings API - overwrites this server's Pinned Ingests list (pinned ingest aliases/categories go into this server's Ingest Alias/Category Overrides) and the global Ingest Aliases & Categories">Import from streamer...</button>
 				<button class="add-pinned-ingest" style="margin-left: auto;">Add pinned ingest</button>
 			</div>
 		</details>
-		<details class="server-subsection server-ingest-scenes" style="${checked ? '' : 'display: none;'}">
-			<summary title="Maps each ingest (matched by OBS source name, so it survives IRLToolkit renames) to the scene it should switch to on this server, used by the IRLToolkit Ingest Scene action">Ingest → Scene Mapping <span class="count"></span></summary>
+		<details class="server-subsection server-ingest-scenes irltk-only" style="${irltkOnlyStyle}">
+			<summary title="Maps each ingest (matched by OBS source name, so it survives IRLToolkit renames) to the scene it should switch to on this server, used by the IRLToolkit Ingest Scene action. While a streamer is set, the streamer's linked scenes (matched by ingest name) are used instead">Ingest → Scene Mapping <span class="count"></span></summary>
+			<div class="streamer-locked-note">Linked scenes from the streamer's settings (by ingest name) - use Refresh to update. The mapping set here is used again if the streamer is cleared.</div>
+			<div class="streamer-scene-items">${streamerSceneRowsHtml(server.ingestScene)}</div>
 			<div class="ingest-scene-items">${ingestSceneRows}</div>
-			<div class="server-row-line">
+			<div class="server-row-line add-ingest-scene-line">
 				<div class="field-label"></div>
 				<button class="add-ingest-scene" style="margin-left: auto;">Add mapping</button>
 			</div>
 		</details>
-		<details class="server-subsection server-ingest-aliases" style="${checked ? '' : 'display: none;'}">
-			<summary title="Per-server override of the display name and/or category for a specific ingest (matched by ingest name), for when this server needs something different from the global Ingest Aliases &amp; Categories setting">Ingest Alias/Category Overrides <span class="count"></span></summary>
+		<details class="server-subsection server-ingest-aliases irltk-only" style="${irltkOnlyStyle}">
+			<summary title="Optional display name and/or category for each IRLToolkit ingest on this server, matched by ingest name (as shown in IRLToolkit, which doesn't support renaming ingests)">Ingest Aliases &amp; Categories <span class="count"></span></summary>
+			<div class="streamer-locked-note">Set from the streamer's settings - use Refresh to update.</div>
 			<div class="ingest-alias-items">${ingestAliasRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
-				<button class="add-ingest-alias" style="margin-left: auto;">Add override</button>
+				<button class="add-ingest-alias" style="margin-left: auto;">Add alias</button>
 			</div>
 		</details>
 		</div>
@@ -308,6 +436,7 @@ function refreshServerUI() {
 		row.querySelector('.remove').disabled = rows.length <= 1;
 	});
 	document.querySelector('#addServer').disabled = rows.length >= MAX_SERVERS;
+	syncSelectAll('#exportSelectAll', '.server-items', '.export-select');
 	renderTargetOptions();
 	refreshServerSummaries();
 }
@@ -364,8 +493,8 @@ document.querySelector('.server-items').addEventListener('click', (e) => {
 		return;
 	}
 
-	if (e.target.matches('.import-streamer-ingests')) {
-		importStreamerIngests(e.target.closest('.server-row'));
+	if (e.target.matches('.refresh-streamer')) {
+		refreshStreamers([e.target.closest('.server-row')]);
 		return;
 	}
 
@@ -449,12 +578,9 @@ document.querySelector('.server-items').addEventListener('click', (e) => {
 document.querySelector('.server-items').addEventListener('input', (e) => {
 	if (e.target.matches('input[name="serverName"]')) renderTargetOptions();
 	if (e.target.matches('input[name="serverIrltk"]')) {
-		const section = e.target.closest('.server-row').querySelector('.server-pinned-ingests');
-		if (section) section.style.display = e.target.checked ? '' : 'none';
-		const mapSection = e.target.closest('.server-row').querySelector('.server-ingest-scenes');
-		if (mapSection) mapSection.style.display = e.target.checked ? '' : 'none';
-		const aliasSection = e.target.closest('.server-row').querySelector('.server-ingest-aliases');
-		if (aliasSection) aliasSection.style.display = e.target.checked ? '' : 'none';
+		e.target.closest('.server-row').querySelectorAll('.irltk-only').forEach((el) => {
+			el.style.display = e.target.checked ? '' : 'none';
+		});
 	}
 	if (e.target.matches('input[name="ingestSceneIngest"], input[name="ingestSceneScene"]')) {
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
@@ -464,9 +590,20 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 	}
 });
 
+// Fetch the streamer's settings as soon as a (new) streamer name is committed
+document.querySelector('.server-items').addEventListener('change', (e) => {
+	if (e.target.matches('input[name="serverStreamer"]')) refreshStreamers([e.target.closest('.server-row')]);
+});
+
+document.querySelector('#refreshAllStreamers').addEventListener('click', (e) => {
+	e.preventDefault();
+	refreshStreamers(Array.from(document.querySelectorAll('.server-row')));
+});
+
 function serializeFormValue(formEl) {
 	const { serverName, serverIp, serverPort, serverPwd, ...rest } = getFormValue(formEl);
 	delete rest.serverIrltk;
+	delete rest.serverStreamer;
 	delete rest.serverSecure;
 	delete rest.serverRetryInterval;
 	delete rest.ingestPinned;
@@ -490,6 +627,8 @@ function serializeFormValue(formEl) {
 			port: ports[i] || '',
 			pwd: pwds[i] || '',
 			irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
+			streamer: row.querySelector('input[name="serverStreamer"]').value.trim() || undefined,
+			streamerFetchedAt: Number(row.dataset.streamerFetchedAt) || undefined,
 			secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
 			retryIntervalS: row.querySelector('input[name="serverRetryInterval"]').value || undefined,
 			ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
@@ -497,6 +636,7 @@ function serializeFormValue(formEl) {
 				ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
 				scene: r.querySelector('input[name="ingestSceneScene"]').value,
 			})).filter((m) => m.ingest || m.scene),
+			ingestScene: Object.fromEntries(Array.from(row.querySelectorAll('.streamer-scene-row')).map((r) => [r.dataset.name, r.dataset.scene])),
 			ingestAlias: Object.fromEntries(
 				aliasRows
 				.map((r) => [r.querySelector('input[name="ingestAliasName"]').value, r.querySelector('input[name="ingestAliasValue"]').value.trim()])
@@ -526,129 +666,25 @@ function cloneForForm() {
 	return rest;
 }
 
-let cachedIngestLists = null;
-
 /**
- * (Re)render the global Ingest Aliases & Categories list from every known ingest name (live,
- * across all servers, plus anything already saved), backed by the flat ingestAlias__<name> /
- * ingestCategory__<name> global settings. Matched by ingest name (as shown in IRLToolkit, which
- * doesn't support renaming ingests) - per-server overrides live separately on each server row.
+ * Called by the inspector when the plugin saves global settings while this window is open (e.g. a
+ * background streamer refresh): show the newer streamer data in place - those lists are read-only
+ * while a streamer is set, so there are no edits here to lose - and adopt the plugin's other changes
+ * so this window's next save doesn't revert them
+ * @param {Record<string, any>} settings
  */
-function renderIngestAliasList() {
-	if (!cachedIngestLists) return;
-	const { ingestsLists, connectedIngestSourceNames } = cachedIngestLists;
-	const ingestNames = new Set();
-	ingestsLists.flat().forEach((ingest) => ingestNames.add(ingest.name));
-
-	Object.keys(globalSettings).forEach((key) => {
-		const aliasMatch = key.match(/^ingestAlias__(.+)$/);
-		if (aliasMatch) ingestNames.add(aliasMatch[1]);
-		const categoryMatch = key.match(/^ingestCategory__(.+)$/);
-		if (categoryMatch) ingestNames.add(categoryMatch[1]);
+window.onExternalGlobalSettings = (settings) => {
+	const latestServers = resolveServers(settings);
+	document.querySelectorAll('.server-row').forEach((row) => {
+		const server = latestServers.find((s) => s.id === row.dataset.id);
+		const streamer = getStreamerName(row);
+		if (!server || !streamer || server.streamer !== streamer || row.dataset.refreshing === 'true') return;
+		if ((server.streamerFetchedAt ?? 0) <= (Number(row.dataset.streamerFetchedAt) || 0)) return;
+		renderStreamerData(row, server, server.streamerFetchedAt);
 	});
-
-	const connectedSet = new Set(connectedIngestSourceNames);
-	const connectedNames = new Set(ingestsLists.flat().filter((ingest) => connectedSet.has(ingest.obs_source_name)).map((ingest) => ingest.name));
-
-	document.querySelector('#ingestAliasList').innerHTML = [...ingestNames]
-	.sort((a, b) => a.localeCompare(b))
-	.map((name) => {
-		const safeName = escapeHtml(name);
-		const aliasKey = `ingestAlias__${name}`;
-		const categoryKey = `ingestCategory__${name}`;
-		const canDelete = !connectedNames.has(name);
-		const categoryOptions = CATEGORY_OPTIONS
-		.map(([value, label]) => `<option value="${value}">${label}</option>`)
-		.join('');
-		return `
-			<div class="sdpi-item">
-				<div class="sdpi-item-label" title="${safeName}">${safeName}</div>
-				<div class="sdpi-item-value" style="display: flex; gap: 4px; align-items: center;">
-					<input style="flex: 1 0 0; min-width: 0;" type="text" name="ingestAlias__${safeName}" placeholder="${safeName}">
-					<select style="flex: 0 0 90px;" class="sdpi-item-value select" name="ingestCategory__${safeName}">${categoryOptions}</select>
-					${canDelete ? `<button class="remove-alias icon-button icon-remove" title="Remove" data-alias-key="${escapeHtml(aliasKey)}" data-category-key="${escapeHtml(categoryKey)}"></button>` : ''}
-				</div>
-			</div>
-		`;
-	}).join('');
-}
-
-function removeAliasRow(e) {
-	const btn = e.target.closest('.remove-alias');
-	if (!btn) return;
-	e.preventDefault();
-	delete globalSettings[btn.dataset.aliasKey];
-	if (btn.dataset.categoryKey) delete globalSettings[btn.dataset.categoryKey];
-	btn.closest('.sdpi-item').remove();
-	window.opener.sendGlobalSettingsToInspector(globalSettings);
-}
-document.querySelector('#ingestAliasList').addEventListener('click', removeAliasRow);
-
-/**
- * Import ingest settings for a streamer from the 1a3.uk userscript-settings public API: pinned
- * ingests go into this specific server's Pinned Ingests list (with their aliases/categories as this
- * server's Ingest Alias/Category Overrides), while every other ingest's alias/category goes into
- * the global Ingest Aliases & Categories settings shared by every server.
- * @param {HTMLElement} serverRow
- */
-async function importStreamerIngests(serverRow) {
-	const btn = serverRow.querySelector('.import-streamer-ingests');
-	const streamerName = window.prompt('Streamer name to import ingest settings for:');
-	if (!streamerName || !streamerName.trim()) return;
-
-	const originalText = btn.textContent;
-	btn.disabled = true;
-	btn.textContent = 'Importing...';
-	try {
-		const response = await fetch(`https://1a3.uk/api/mediamtx/userscript-settings/${encodeURIComponent(streamerName.trim())}/public`);
-		if (!response.ok) throw new Error(`HTTP ${response.status}`);
-		const data = await response.json();
-		const ingests = data?.settings?.ingests;
-		if (!data?.success || !ingests || typeof ingests !== 'object') throw new Error('Unexpected response format');
-
-		// The API key is the ingest name minus the " Player" suffix that OBS/IRLToolkit actually use
-		const pinnedNames = Object.entries(ingests)
-		.filter(([, info]) => info?.mine === true)
-		.map(([key]) => key);
-		if (pinnedNames.length) {
-			serverRow.querySelector('.pinned-ingest-items').innerHTML = pinnedNames.map((name) => pinnedIngestRowHtml(name)).join('');
-		}
-
-		const aliasItems = serverRow.querySelector('.ingest-alias-items');
-		Object.entries(ingests).forEach(([key, info]) => {
-			const name = key;
-			const label = typeof info?.label === 'string' ? info.label.trim() : '';
-			const rawCategory = typeof info?.category === 'string' ? info.category.trim().toLowerCase() : '';
-			const category = INGEST_CATEGORIES.includes(rawCategory) ? rawCategory : '';
-			if (info?.mine === true) {
-				// Pinned ingests get their alias/category as a per-server override instead of a global one
-				const existingRow = Array.from(aliasItems.querySelectorAll('.ingest-alias-row'))
-				.find((r) => r.querySelector('input[name="ingestAliasName"]').value.trim() === name);
-				if (existingRow) {
-					existingRow.querySelector('input[name="ingestAliasValue"]').value = label;
-					existingRow.querySelector('select[name="ingestAliasCategory"]').value = category;
-				}
-				else if (label || category) aliasItems.insertAdjacentHTML('beforeend', ingestAliasRowHtml(name, label, category));
-				return;
-			}
-			if (label) globalSettings[`ingestAlias__${name}`] = label;
-			globalSettings[`ingestCategory__${name}`] = category;
-		});
-		renderIngestAliasList();
-		refreshIngestAliasOverrideDatalists(serverRow);
-
-		FormUtils.setFormValue(cloneForForm(), document.querySelector('form'));
-		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-	}
-	catch (e) {
-		console.error('Error importing streamer ingest settings', e);
-		window.alert(`Failed to import ingest settings: ${e.message}`);
-	}
-	finally {
-		btn.disabled = false;
-		btn.textContent = originalText;
-	}
-}
+	refreshServerSummaries();
+	globalSettings = stripGlobalIngestAliases({ ...settings, ...serializeFormValue(document.querySelector('form')) });
+};
 
 window.onload = () => {
 	const formEl = document.querySelector('form');
@@ -662,24 +698,20 @@ window.onload = () => {
 	FormUtils.setFormValue(cloneForForm(), formEl);
 	renderTargetOptions();
 
-	window.opener.getGlobalLists().then(({ ingestsLists, scenesLists, connectedIngestSourceNames }) => {
-		cachedIngestLists = { ingestsLists, connectedIngestSourceNames };
-		renderIngestAliasList();
-
+	window.opener.getGlobalLists().then(({ ingestsLists, scenesLists }) => {
 		Array.from(document.querySelectorAll('.server-row')).forEach((row, i) => {
 			ingestSceneListsByServer.set(row, { ingests: ingestsLists[i] ?? [], scenes: scenesLists[i] ?? [] });
 			refreshIngestSceneDatalists(row);
 			refreshIngestAliasOverrideDatalists(row);
 		});
-
-		FormUtils.setFormValue(cloneForForm(), formEl);
 		return;
 	}).catch((e) => console.error('Error loading ingest/scene alias lists', e));
 
 	formEl.addEventListener(
 		'input',
 		Utils.debounce(500, () => {
-			globalSettings = { ...globalSettings, ...serializeFormValue(formEl) };
+			// Ingest aliases/categories now live on each server (migrated by resolveServers)
+			globalSettings = stripGlobalIngestAliases({ ...globalSettings, ...serializeFormValue(formEl) });
 			window.opener.sendGlobalSettingsToInspector(globalSettings);
 		}),
 	);
@@ -689,27 +721,165 @@ function setTransferStatus(message) {
 	document.querySelector('#settingsTransferStatus').textContent = message;
 }
 
-document.querySelector('#exportSettings').addEventListener('click', (e) => {
+/** Servers ticked for export via the checkbox in each server row's header */
+function getExportServers() {
+	const ids = new Set(Array.from(document.querySelectorAll('.server-row'))
+	.filter((row) => row.querySelector('.export-select').checked)
+	.map((row) => row.dataset.id));
+	return serializeFormValue(document.querySelector('form')).servers.filter((server) => ids.has(server.id));
+}
+
+/**
+ * Wire a "select all" checkbox to a group of checkboxes: toggling it ticks/unticks them all, and it
+ * stays ticked only while every one of them is ticked
+ * @param {string} masterSelector
+ * @param {string} containerSelector Element holding the group (listened to, so rows added later work too)
+ * @param {string} boxSelector
+ */
+function wireSelectAll(masterSelector, containerSelector, boxSelector) {
+	const boxes = () => Array.from(document.querySelectorAll(`${containerSelector} ${boxSelector}`));
+	document.addEventListener('change', (e) => {
+		const master = document.querySelector(masterSelector);
+		if (!master) return;
+		if (e.target === master) {
+			boxes().forEach((box) => { box.checked = master.checked; });
+		}
+		else if (e.target.matches(`${containerSelector} ${boxSelector}`)) {
+			syncSelectAll(masterSelector, containerSelector, boxSelector);
+		}
+	});
+}
+
+function syncSelectAll(masterSelector, containerSelector, boxSelector) {
+	const master = document.querySelector(masterSelector);
+	if (!master) return;
+	const boxes = Array.from(document.querySelectorAll(`${containerSelector} ${boxSelector}`));
+	master.checked = boxes.length > 0 && boxes.every((box) => box.checked);
+}
+
+wireSelectAll('#exportSelectAll', '.server-items', '.export-select');
+wireSelectAll('#importSelectAll', '#importServerOptions', 'input:not(#importSelectAll)');
+
+function resetImportList() {
+	pendingImportServers = [];
+	document.querySelector('#importServerOptions').replaceChildren();
+	document.querySelector('#importServerOptionsRow').style.display = 'none';
+	document.querySelector('#importSettings').disabled = true;
+}
+
+function openTransferPopup() {
+	const count = getExportServers().length;
+	const exportBtn = document.querySelector('#exportSettings');
+	exportBtn.textContent = `Export ${count} selected server${count === 1 ? '' : 's'}`;
+	exportBtn.disabled = !count;
+	document.querySelector('#settingsTransferText').value = '';
+	resetImportList();
+	setTransferStatus(count ? '' : 'Tick the checkbox next to a server\'s name to include it in an export.');
+	document.querySelector('#transferPopup').hidden = false;
+}
+
+function closeTransferPopup() {
+	document.querySelector('#transferPopup').hidden = true;
+}
+
+document.querySelector('#openTransfer').addEventListener('click', (e) => {
 	e.preventDefault();
-	const textEl = document.querySelector('#settingsTransferText');
-	textEl.value = JSON.stringify(globalSettings);
-	textEl.select();
-	setTransferStatus('Copy the text above (Ctrl+C) and import it in the other install.');
+	openTransferPopup();
+});
+document.querySelector('#closeTransfer').addEventListener('click', closeTransferPopup);
+document.querySelector('#transferPopup').addEventListener('click', (e) => {
+	if (e.target.id === 'transferPopup') closeTransferPopup();
+});
+document.addEventListener('keydown', (e) => {
+	if (e.key === 'Escape' && !document.querySelector('#transferPopup').hidden) closeTransferPopup();
 });
 
-document.querySelector('#importSettings').addEventListener('click', (e) => {
-	e.preventDefault();
-	let imported;
+// Servers parsed from the pasted import text, waiting for the user to pick which to import
+let pendingImportServers = [];
+
+function parseImportServers(text) {
+	const parsed = JSON.parse(text);
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Not an object');
+	// Also accept a full settings export (e.g. from the original plugin with ip1/port1/pwd1...)
+	const hasServers = Array.isArray(parsed.servers) || Object.keys(parsed).some((key) => /^(ip|port|pwd)\d+$/.test(key));
+	if (!hasServers) throw new Error('No servers');
+	return resolveServersFromSettings(parsed);
+}
+
+document.querySelector('#settingsTransferText').addEventListener('input', (e) => {
+	resetImportList();
+	if (!e.target.value.trim()) {
+		setTransferStatus('');
+		return;
+	}
 	try {
-		imported = JSON.parse(document.querySelector('#settingsTransferText').value);
-		if (!imported || typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Not an object');
+		pendingImportServers = parseImportServers(e.target.value);
 	}
 	catch {
 		setTransferStatus('Invalid settings text.');
 		return;
 	}
-	globalSettings = imported;
+
+	const selectAllHtml = pendingImportServers.length > 1 ? `
+		<div class="import-option select-all">
+			<input id="importSelectAll" type="checkbox" checked>
+			<label for="importSelectAll"><span></span>Select all</label>
+		</div>
+	` : '';
+	document.querySelector('#importServerOptions').innerHTML = selectAllHtml + pendingImportServers.map((server, i) => {
+		const name = server.name || `OBS #${i + 1}`;
+		const label = server.ip ? `${name} (${server.ip}${server.port ? `:${server.port}` : ''})` : name;
+		const id = `importServer-${i}`;
+		return `
+			<div class="import-option">
+				<input id="${id}" type="checkbox" value="${escapeHtml(server.id)}" checked>
+				<label for="${id}" title="${escapeHtml(label)}"><span></span>${escapeHtml(label)}</label>
+			</div>
+		`;
+	}).join('');
+	document.querySelector('#importServerOptionsRow').style.display = '';
+	document.querySelector('#importSettings').disabled = false;
+	setTransferStatus('Choose which servers to import, then click Import.');
+});
+
+document.querySelector('#exportSettings').addEventListener('click', (e) => {
+	e.preventDefault();
+	const servers = getExportServers();
+	if (!servers.length) return;
+	const textEl = document.querySelector('#settingsTransferText');
+	textEl.value = JSON.stringify({ servers });
+	textEl.select();
+	resetImportList();
+	setTransferStatus(`Copy the text above (Ctrl+C) and import it in the other install. ${servers.length} server${servers.length === 1 ? '' : 's'} exported.`);
+});
+
+document.querySelector('#importSettings').addEventListener('click', (e) => {
+	e.preventDefault();
+	const ids = new Set(Array.from(document.querySelectorAll('#importServerOptions input:checked:not(#importSelectAll)')).map((el) => el.value));
+	const toImport = pendingImportServers.filter((server) => ids.has(server.id));
+	if (!toImport.length) {
+		setTransferStatus('Choose at least one server to import.');
+		return;
+	}
+
+	// Servers with the same id are replaced in place; others are added, replacing any blank
+	// placeholder servers (no address/password) first
+	const isBlank = (server) => !server.ip && !server.port && !server.pwd;
+	let { servers } = serializeFormValue(document.querySelector('form'));
+	const added = [];
+	toImport.forEach((server) => {
+		const idx = servers.findIndex((s) => s.id === server.id);
+		if (idx !== -1) servers[idx] = server;
+		else added.push(server);
+	});
+	servers = servers.filter((server) => !added.length || !isBlank(server));
+	servers.push(...added);
+	const skipped = Math.max(0, servers.length - MAX_SERVERS);
+	servers = servers.slice(0, MAX_SERVERS);
+
+	globalSettings = stripGlobalIngestAliases({ ...globalSettings, servers });
 	window.opener.sendGlobalSettingsToInspector(globalSettings);
+	if (skipped) window.alert(`${skipped} server${skipped === 1 ? ' was' : 's were'} not imported - the maximum is ${MAX_SERVERS} servers.`);
 	location.reload();
 });
 

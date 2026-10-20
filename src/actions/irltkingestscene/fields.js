@@ -30,8 +30,8 @@ export const fields = `
 		<option value="program">${$PI.localize('Program')}</option>
 	</select>
 </div>
-<div class="sdpi-item" title="${$PI.localize('The scene to switch to is looked up from the OBS source name of the resolved ingest, using the Ingest to Scene Mapping configured for this server in General Configuration')}">
+<div class="sdpi-item" title="${$PI.localize('The scene to switch to is looked up from the OBS source name of the resolved ingest, using the Ingest to Scene Mapping configured for this server in General Configuration - or, when the server has a streamer set, the linked scene from that streamer\'s 1a3.uk userscript settings')}">
 	<div class="sdpi-item-label empty"></div>
-	<div class="sdpi-item-value" style="opacity: 0.75; font-size: 9pt; white-space: normal;" data-i18n>The target scene is looked up from the Ingest → Scene Mapping set for this server in General Configuration.</div>
+	<div class="sdpi-item-value" style="opacity: 0.75; font-size: 9pt; white-space: normal;" data-i18n>The target scene is looked up from the Ingest → Scene Mapping set for this server in General Configuration (or the streamer's linked scenes, if the server has a streamer set).</div>
 </div>
 `;
