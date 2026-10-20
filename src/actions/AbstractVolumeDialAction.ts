@@ -1,7 +1,8 @@
 import { sockets } from '../plugin/sockets';
 import { AbstractStatefulAction } from './BaseWsAction';
 import { StateEnum } from './StateEnum';
-import { ConstructorParams, ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from './types';
+import { globalSettings } from './globalSettings';
+import { ConstructorParams, ContextData, DialDownData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from './types';
 
 const MIN_DB = -100;
 const DEFAULT_MAX_DB = 0;
@@ -21,6 +22,7 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 	private _muteCache = new Map<string, (boolean | undefined)[]>();
 	private _monitorTypeCache = new Map<string, (string | undefined)[]>();
 	private _rotateTimers = new Map<string, NodeJS.Timeout>();
+	private _holdTimers = new Map<string, NodeJS.Timeout | undefined>();
 	private _lastResolvedNames = new Map<string, (string | undefined)[]>();
 
 	constructor(UUID: string, params?: Omit<Partial<ConstructorParams>, 'statusEvent'>) {
@@ -44,45 +46,29 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 			this._rotateTimers.set(context, setTimeout(() => this._commitVolume(context), ROTATE_SETTLE_MS));
 		});
 
-		this.onDialUp(async (evtData: DialUpData<unknown>) => {
+		// Short press toggles mute, long press resets volume to 0 dB
+		this.onDialDown((evtData: DialDownData<unknown>) => {
 			const { context } = evtData;
-			if (!this.contexts.has(context)) return;
-			const { settings } = this.contexts.get(context)!;
-			this._warnIfDisconnected(context, settings);
-			const muteCache = this._muteCache.get(context);
-			const monitorTypeCache = this._monitorTypeCache.get(context);
-			await Promise.allSettled(settings.map((socketSettings, socketIdx) => {
-				if (!sockets[socketIdx].isConnected) return Promise.resolve();
-				const inputName = this.resolveInputName(socketIdx, socketSettings);
-				if (!inputName) return Promise.resolve();
-				const monitorType = monitorTypeCache?.[socketIdx];
-				if (monitorType && monitorType !== MONITOR_TYPE_NONE) {
-					const newMonitorType = monitorType === MONITOR_TYPE_MONITOR_ONLY ? MONITOR_TYPE_MONITOR_AND_OUTPUT : MONITOR_TYPE_MONITOR_ONLY;
-					return sockets[socketIdx].call('SetInputAudioMonitorType', { inputName, monitorType: newMonitorType });
-				}
-				return sockets[socketIdx].call('SetInputMute', { inputName, inputMuted: !muteCache?.[socketIdx] });
-			}));
+			if (this._holdTimers.has(context)) return;
+			this._holdTimers.set(context, setTimeout(() => {
+				this._holdTimers.set(context, undefined);
+				this._resetVolume(context);
+			}, Number(globalSettings.longPressMs) || 500));
 		});
 
-		this.onTouchTap(async (evtData: TouchTapData<unknown>) => {
+		this.onDialUp((evtData: DialUpData<unknown>) => {
 			const { context } = evtData;
-			if (!this.contexts.has(context)) return;
-			const { settings, displayIdx } = this.contexts.get(context)!;
-			this._warnIfDisconnected(context, settings);
+			const holdTimer = this._holdTimers.get(context);
+			const wasLongPress = this._holdTimers.has(context) && holdTimer === undefined;
+			clearTimeout(holdTimer);
+			this._holdTimers.delete(context);
+			if (!wasLongPress) this._toggleMute(context);
+		});
 
-			clearTimeout(this._rotateTimers.get(context));
-			this._rotateTimers.delete(context);
-
-			const cached = this._volumeCache.get(context);
-			await Promise.allSettled(settings.map((socketSettings, socketIdx) => {
-				if (!sockets[socketIdx].isConnected) return Promise.resolve();
-				const inputName = this.resolveInputName(socketIdx, socketSettings);
-				if (!inputName) return Promise.resolve();
-				if (cached) cached[socketIdx] = 0;
-				return sockets[socketIdx].call('SetInputVolume', { inputName, inputVolumeDb: 0 });
-			}));
-			const displayName = this.resolveDisplayName(displayIdx, settings[displayIdx]);
-			this._updateDialFeedback(context, displayName, displayName ? 0 : undefined, this._getEffectiveMute(context, displayIdx), displayIdx, settings[displayIdx]);
+		this.onTouchTap((evtData: TouchTapData<unknown>) => {
+			const { context, payload } = evtData;
+			if (payload.hold) this._resetVolume(context);
+			else this._toggleMute(context);
 		});
 
 		sockets.forEach((socket, socketIdx) => {
@@ -183,6 +169,45 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 		}
 	}
 
+	private async _toggleMute(context: string) {
+		if (!this.contexts.has(context)) return;
+		const { settings } = this.contexts.get(context)!;
+		this._warnIfDisconnected(context, settings);
+		const muteCache = this._muteCache.get(context);
+		const monitorTypeCache = this._monitorTypeCache.get(context);
+		await Promise.allSettled(settings.map((socketSettings, socketIdx) => {
+			if (!sockets[socketIdx].isConnected) return Promise.resolve();
+			const inputName = this.resolveInputName(socketIdx, socketSettings);
+			if (!inputName) return Promise.resolve();
+			const monitorType = monitorTypeCache?.[socketIdx];
+			if (monitorType && monitorType !== MONITOR_TYPE_NONE) {
+				const newMonitorType = monitorType === MONITOR_TYPE_MONITOR_ONLY ? MONITOR_TYPE_MONITOR_AND_OUTPUT : MONITOR_TYPE_MONITOR_ONLY;
+				return sockets[socketIdx].call('SetInputAudioMonitorType', { inputName, monitorType: newMonitorType });
+			}
+			return sockets[socketIdx].call('SetInputMute', { inputName, inputMuted: !muteCache?.[socketIdx] });
+		}));
+	}
+
+	private async _resetVolume(context: string) {
+		if (!this.contexts.has(context)) return;
+		const { settings, displayIdx } = this.contexts.get(context)!;
+		this._warnIfDisconnected(context, settings);
+
+		clearTimeout(this._rotateTimers.get(context));
+		this._rotateTimers.delete(context);
+
+		const cached = this._volumeCache.get(context);
+		await Promise.allSettled(settings.map((socketSettings, socketIdx) => {
+			if (!sockets[socketIdx].isConnected) return Promise.resolve();
+			const inputName = this.resolveInputName(socketIdx, socketSettings);
+			if (!inputName) return Promise.resolve();
+			if (cached) cached[socketIdx] = 0;
+			return sockets[socketIdx].call('SetInputVolume', { inputName, inputVolumeDb: 0 });
+		}));
+		const displayName = this.resolveDisplayName(displayIdx, settings[displayIdx]);
+		this._updateDialFeedback(context, displayName, displayName ? 0 : undefined, this._getEffectiveMute(context, displayIdx), displayIdx, settings[displayIdx]);
+	}
+
 	private async _commitVolume(context: string) {
 		this._rotateTimers.delete(context);
 		if (!this.contexts.has(context) || !this._volumeCache.has(context)) return;
@@ -213,6 +238,8 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 	override async onContextDisappear(context: string): Promise<void> {
 		clearTimeout(this._rotateTimers.get(context));
 		this._rotateTimers.delete(context);
+		clearTimeout(this._holdTimers.get(context));
+		this._holdTimers.delete(context);
 		this._volumeCache.delete(context);
 		this._muteCache.delete(context);
 		this._monitorTypeCache.delete(context);

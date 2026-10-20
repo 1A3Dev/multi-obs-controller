@@ -259,8 +259,8 @@
 				"layout": "actions/dialLayout/layout.json",
 				"TriggerDescription": {
 					"Rotate": "Adjust volume",
-					"Push": "Toggle mute",
-					"Touch": "Reset to 0 dB"
+					"Push": "Toggle mute (hold: reset to 0 dB)",
+					"Touch": "Toggle mute (hold: reset to 0 dB)"
 				}
 			}
 		},
@@ -589,8 +589,8 @@
 				"layout": "actions/dialLayout/layout.json",
 				"TriggerDescription": {
 					"Rotate": "Adjust volume",
-					"Push": "Toggle mute",
-					"Touch": "Reset to 0 dB"
+					"Push": "Toggle mute (hold: reset to 0 dB)",
+					"Touch": "Toggle mute (hold: reset to 0 dB)"
 				}
 			}
 		},
