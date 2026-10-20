@@ -2,7 +2,7 @@ import { sockets } from '../../plugin/sockets';
 import { AbstractStatefulAction } from '../BaseWsAction';
 import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getLastKnownIngestNames, isIngestSourceOnline, onIngestsUpdated } from '../irltkIngests';
+import { getIngestSceneMap, getLastKnownIngestNames, isIngestSourceOnline, onIngestsUpdated } from '../irltkIngests';
 import { getScenesLists } from '../lists';
 import { ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
 
@@ -202,8 +202,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 
 	/** True if the scene has ingests mapped in the server's Ingest → Scene map and none of them are online */
 	private _isMappedIngestOffline(sceneName: string, socketIdx: number): boolean {
-		const server = resolveServers(globalSettings)[socketIdx];
-		const mappedIngests = server?.ingestSceneMap?.filter(m => m.scene === sceneName && m.ingest).map(m => m.ingest!) ?? [];
+		const mappedIngests = getIngestSceneMap(socketIdx).filter(m => m.scene === sceneName).map(m => m.ingest);
 		if (!mappedIngests.length) return false;
 		const states = mappedIngests.map(ingest => isIngestSourceOnline(socketIdx, ingest));
 		// No IRLToolkit status yet, so the online state is unknown
@@ -214,10 +213,10 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 	/** Alias of the ingest mapped to this scene in the server's Ingest → Scene map, if one is set */
 	private _getMappedIngestAlias(sceneName: string, socketIdx: number): string | undefined {
 		const server = resolveServers(globalSettings)[socketIdx];
-		const mapping = server?.ingestSceneMap?.find(m => m.scene === sceneName && m.ingest);
-		if (!mapping?.ingest) return undefined;
+		const mapping = getIngestSceneMap(socketIdx).find(m => m.scene === sceneName);
+		if (!mapping) return undefined;
 		const ingestName = getLastKnownIngestNames(socketIdx).get(mapping.ingest) ?? mapping.ingest;
-		return server?.ingestAlias?.[ingestName] || globalSettings[`ingestAlias__${ingestName}`] || undefined;
+		return server?.ingestAlias?.[ingestName] || undefined;
 	}
 
 	private _refreshUntouchedContexts(socketIdx: number, changedTarget: 'preview' | 'program') {

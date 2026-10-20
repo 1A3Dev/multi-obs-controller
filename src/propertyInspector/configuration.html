@@ -180,6 +180,126 @@
 				border-top: 1px solid rgba(255, 255, 255, 0.08);
 			}
 
+			.server-row-header .export-select-label {
+				flex: 0 0 auto;
+				margin-right: 0;
+			}
+
+			.select-all-line {
+				display: flex;
+				align-items: center;
+				margin: 0 0 4px 8px;
+			}
+
+			#importServerOptions .import-option.select-all {
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				margin-bottom: 2px;
+			}
+
+			#openTransfer {
+				width: 100%;
+				margin-bottom: 4px;
+			}
+
+			.popup-backdrop {
+				position: fixed;
+				inset: 0;
+				background: rgba(0, 0, 0, 0.6);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 16px;
+				box-sizing: border-box;
+				z-index: 10;
+			}
+
+			.popup-backdrop[hidden] {
+				display: none;
+			}
+
+			.popup {
+				background: #2d2d2d;
+				border-radius: 8px;
+				padding: 12px;
+				width: 100%;
+				max-width: 480px;
+				max-height: 100%;
+				overflow-y: auto;
+				box-sizing: border-box;
+				box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+			}
+
+			.popup textarea {
+				width: 100%;
+				box-sizing: border-box;
+				resize: vertical;
+			}
+
+			.popup-subheading {
+				font-size: 9pt;
+				opacity: 0.75;
+				margin: 6px 0 2px;
+			}
+
+			.popup-actions {
+				display: flex;
+				justify-content: flex-end;
+				gap: 8px;
+				margin: 6px 0;
+			}
+
+			#importServerOptions .import-option {
+				padding: 2px 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.streamer-locked-note {
+				display: none;
+				font-size: 8pt;
+				opacity: 0.6;
+				margin-bottom: 4px;
+			}
+
+			.server-row.streamer-locked .streamer-locked-note {
+				display: block;
+			}
+
+			/* While a streamer is set, its linked scenes replace the manual Ingest -> Scene Mapping (kept for when the streamer is cleared) */
+			.streamer-scene-items,
+			.server-row.streamer-locked .ingest-scene-items,
+			.server-row.streamer-locked .add-ingest-scene-line {
+				display: none;
+			}
+
+			.server-row.streamer-locked .streamer-scene-items {
+				display: block;
+			}
+
+			/* One muted look for every locked field - read-only inputs and disabled selects alike (and without sdpi's red :disabled text) */
+			.streamer-scene-items input[readonly],
+			.server-row.streamer-locked .server-pinned-ingests input[readonly],
+			.server-row.streamer-locked .server-ingest-aliases input[readonly],
+			.server-row.streamer-locked .server-ingest-aliases select:disabled {
+				background-color: #333333;
+				color: #8a8a8a;
+				opacity: 1;
+				cursor: default;
+				outline: none;
+			}
+
+			.server-row.streamer-locked .server-ingest-aliases select:disabled {
+				-webkit-appearance: none;
+				appearance: none;
+			}
+
+			/* Pinned ingests & aliases come from the streamer's settings - no adding/moving/removing */
+			.server-row.streamer-locked .server-pinned-ingests button,
+			.server-row.streamer-locked .server-ingest-aliases button {
+				display: none;
+			}
+
 			.server-pinned-ingests-label {
 				font-size: 9pt;
 				opacity: 0.75;
@@ -333,27 +453,26 @@
 							IRLToolkit Ingest Scene action to look up which scene to switch to for a given ingest
 							on that server (ingest and scene names can differ between servers).
 						</p>
+						<p>
+							Set a Streamer name to fill the server's Pinned Ingests and Ingest Aliases &amp;
+							Categories from that streamer's settings (1a3.uk userscript settings). While a streamer
+							is set those lists are read-only - use Refresh (or Refresh all streamers) to pull the
+							latest, or clear the Streamer name to edit them by hand.
+						</p>
 					</details>
+					<div class="select-all-line" title="Tick/untick every server's export checkbox">
+						<input id="exportSelectAll" type="checkbox" checked>
+						<label for="exportSelectAll"><span></span>Select all for export</label>
+					</div>
 					<div class="server-items"></div>
 					<div class="sdpi-item">
 						<div class="sdpi-item-label empty"></div>
-						<div class="sdpi-item-value">
-							<button id="addServer" style="margin: 0 0 0 auto">Add server</button>
+						<div class="sdpi-item-value" style="display: flex; gap: 6px; justify-content: flex-end;">
+							<button id="refreshAllStreamers" title="Re-fetch the streamer's settings for every server with a streamer set">Refresh all streamers</button>
+							<button id="addServer">Add server</button>
 						</div>
 					</div>
-					<details class="settings-transfer">
-						<summary>Export / import settings</summary>
-						<p>
-							Copy your settings (servers, passwords, aliases, etc.) as text to move them to another
-							install, e.g. from the original plugin. Passwords are included in plain text.
-						</p>
-						<textarea id="settingsTransferText" rows="4" style="width: 100%" spellcheck="false" placeholder="Exported settings appear here. To import, paste them here and click Import."></textarea>
-						<div style="display: flex; gap: 8px; margin: 4px 0 8px;">
-							<button id="exportSettings">Export</button>
-							<button id="importSettings">Import</button>
-						</div>
-						<p id="settingsTransferStatus"></p>
-					</details>
+					<button id="openTransfer" title="Copy server settings as text to move them to/from another install">Export / import servers...</button>
 					<button id="reconnect">
 						If you're having issues, click here to force a plugin ↔ OBS reinitialization
 						<svg
@@ -375,16 +494,6 @@
 							<path d="M12 15l.01 0" />
 						</svg>
 					</button>
-				</div>
-				<div class="section">
-					<div class="sdpi-heading">IRLToolkit Ingests</div>
-					<p>
-						Optional display name override and category for each IRLToolkit ingest, matched by
-						ingest name (as shown in IRLToolkit, which doesn't support renaming ingests). Applies
-						across every server; add a per-server override under a server's "Managed by IRLToolkit"
-						settings above if a particular server needs something different for the same name.
-					</p>
-					<div id="ingestAliasList"></div>
 				</div>
 				<div class="section">
 					<div class="sdpi-heading">TVU Integration</div>
@@ -545,6 +654,29 @@
 					</div>
 				</div>
 			</form>
+		</div>
+		<div id="transferPopup" class="popup-backdrop" hidden>
+			<div class="popup" role="dialog" aria-labelledby="transferPopupTitle">
+				<div class="sdpi-heading" id="transferPopupTitle">Export / import servers</div>
+				<p>
+					Copy server settings (address, password, IRLToolkit settings, etc.) as text to move them
+					to another install, e.g. from the original plugin. Other plugin settings aren't included.
+					Passwords are included in plain text.
+				</p>
+				<div class="popup-actions">
+					<button id="exportSettings">Export selected servers</button>
+				</div>
+				<textarea id="settingsTransferText" rows="5" spellcheck="false" placeholder="Exported servers appear here. To import, paste them here, choose which servers to import and click Import."></textarea>
+				<div id="importServerOptionsRow" style="display: none" title="Servers with the same id as an existing one replace it; others are added, replacing any blank servers (no address/password)">
+					<div class="popup-subheading">Servers to import</div>
+					<div id="importServerOptions"></div>
+				</div>
+				<p id="settingsTransferStatus"></p>
+				<div class="popup-actions">
+					<button id="importSettings" disabled>Import</button>
+					<button id="closeTransfer">Close</button>
+				</div>
+			</div>
 		</div>
 		<script src="../libs/js/utils.js"></script>
 		<script src="./autocomplete.js"></script>

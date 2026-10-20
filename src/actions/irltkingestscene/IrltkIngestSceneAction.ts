@@ -2,8 +2,7 @@ import { sockets } from '../../plugin/sockets';
 import { SDUtils } from '../../plugin/utils';
 import { AbstractStatefulRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
-import { globalSettings, resolveServers } from '../globalSettings';
-import { getIngestContextOverride, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngestContextOverride, getIngestSceneMap, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
 type ActionSettings = IrltkTargetSettings & { studioTarget: 'preview' | 'program' }
@@ -49,8 +48,7 @@ export class IrltkIngestSceneAction extends AbstractStatefulRequestAction<Action
 	private _resolveSceneName(socketIdx: number, settings: SocketSettings<ActionSettings>): string | undefined {
 		const ingest = resolveIngest(getIngests(socketIdx), settings, socketIdx, getThresholds(socketIdx));
 		if (!ingest) return undefined;
-		const server = resolveServers(globalSettings)[socketIdx];
-		const mapping = server?.ingestSceneMap?.find(m => m.ingest === ingest.obs_source_name);
+		const mapping = getIngestSceneMap(socketIdx).find(m => m.ingest === ingest.obs_source_name);
 		return mapping?.scene || undefined;
 	}
 

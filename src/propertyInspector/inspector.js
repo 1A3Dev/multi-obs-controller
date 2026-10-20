@@ -1,7 +1,7 @@
 // / <reference path="../libs/js/property-inspector.js" />
 // / <reference path="../libs/js/utils.js" />
 import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS } from '../shared/constants.js';
-import { resolveServers } from '../shared/servers.js';
+import { keepNewestPluginData, resolveServers } from '../shared/servers.js';
 import { FormUtils, localizeUI } from './utils.js';
 
 const NO_TARGET_ACTIONS = new Set(['irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget', 'previousprofile']);
@@ -200,6 +200,7 @@ $PI.onConnected(async (jsn) => {
 $PI.onDidReceiveGlobalSettings(({ payload }) => {
 	globalSettings = payload.settings;
 	document.querySelector('#longPressMs').placeholder = globalSettings.longPressMs;
+	if (configWindow && !configWindow.closed) configWindow.onExternalGlobalSettings?.(globalSettings);
 });
 
 // Dynamic target (Open Ingest Profile server) toggle
@@ -213,8 +214,9 @@ document.querySelector('#dynamicTargetCheck').addEventListener('change', (e) => 
 });
 
 // Open external configuration window
+let configWindow = null;
 document.querySelector('#open-config').addEventListener('click', () => {
-	window.open('./configuration.html');
+	configWindow = window.open('./configuration.html');
 });
 
 // Custom image picker functions/listeners
@@ -324,6 +326,9 @@ window.getGlobalSettings = () => {
 };
 
 window.sendGlobalSettingsToInspector = (settings) => {
+	if (Array.isArray(settings.servers)) {
+		settings = { ...settings, servers: keepNewestPluginData(settings.servers, resolveServers(globalSettings)) };
+	}
 	$PI.setGlobalSettings(settings);
 	globalSettings = settings;
 	document.querySelector('#longPressMs').placeholder = globalSettings.longPressMs;
