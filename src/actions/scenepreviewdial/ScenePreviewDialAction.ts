@@ -4,7 +4,7 @@ import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
 import { getIngestSceneMap, getLastKnownIngestNames, isIngestSourceOnline, onIngestsUpdated } from '../irltkIngests';
 import { getScenesLists } from '../lists';
-import { ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
+import { ContextData, DialDownData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from '../types';
 
 type ActionSettings = { studioTarget?: 'preview' | 'program', useIngestAlias?: 'true', hideOfflineIngestScenes?: 'true', sceneOrder?: string | string[] } & Record<string, string | string[] | undefined>;
 type Scene = { sceneName: string };
@@ -17,6 +17,7 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 	private _studioModeEnabled: boolean[] = new Array(sockets.length).fill(false);
 
 	private _selectedSceneCache = new Map<string, (string | undefined)[]>();
+	private _holdTimers = new Map<string, NodeJS.Timeout | undefined>();
 
 	constructor() {
 		super('dev.theca11.multiobs.scenepreviewdial', { statusEvent: 'StudioModeStateChanged', hideTargetIndicators: true });
@@ -41,35 +42,29 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 			this._updateDialFeedback(context, displayIdx);
 		});
 
-		this.onDialUp(async (evtData: DialUpData<unknown>) => {
+		// Short press switches to the selected scene, long press reverts the selection to the live scene
+		this.onDialDown((evtData: DialDownData<unknown>) => {
 			const { context } = evtData;
-			if (!this.contexts.has(context)) return;
-			const { settings, displayIdx } = this.contexts.get(context)!;
-			this._warnIfDisconnected(context, settings);
-			await Promise.allSettled(settings.map(async (socketSettings, socketIdx) => {
-				if (!socketSettings || !sockets[socketIdx].isConnected) return;
-				const sceneName = this._getSelectedSceneName(context, socketSettings, socketIdx, this._getFilteredScenes(socketSettings, socketIdx, context));
-				if (!sceneName) return;
-				if (socketSettings.studioTarget === 'program') {
-					await sockets[socketIdx].call('SetCurrentProgramScene', { sceneName });
-					this._currentProgramSceneName[socketIdx] = sceneName;
-					return;
-				}
-				if (!this._studioModeEnabled[socketIdx]) return;
-				await sockets[socketIdx].call('SetCurrentPreviewScene', { sceneName });
-				this._currentPreviewSceneName[socketIdx] = sceneName;
-			}));
-			this._selectedSceneCache.set(context, new Array(sockets.length).fill(undefined));
-			this._updateDialFeedback(context, displayIdx);
+			if (this._holdTimers.has(context)) return;
+			this._holdTimers.set(context, setTimeout(() => {
+				this._holdTimers.set(context, undefined);
+				this._revertSelection(context);
+			}, Number(globalSettings.longPressMs) || 500));
+		});
+
+		this.onDialUp((evtData: DialUpData<unknown>) => {
+			const { context } = evtData;
+			const holdTimer = this._holdTimers.get(context);
+			const wasLongPress = this._holdTimers.has(context) && holdTimer === undefined;
+			clearTimeout(holdTimer);
+			this._holdTimers.delete(context);
+			if (!wasLongPress) this._applySelectedScene(context);
 		});
 
 		this.onTouchTap((evtData: TouchTapData<unknown>) => {
-			const { context } = evtData;
-			if (!this.contexts.has(context)) return;
-			const { settings, displayIdx } = this.contexts.get(context)!;
-			this._warnIfDisconnected(context, settings);
-			this._selectedSceneCache.set(context, new Array(sockets.length).fill(undefined));
-			this._updateDialFeedback(context, displayIdx);
+			const { context, payload } = evtData;
+			if (payload.hold) this._revertSelection(context);
+			else this._applySelectedScene(context);
 		});
 
 		sockets.forEach((socket, socketIdx) => {
@@ -119,7 +114,38 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 	}
 
 	override async onContextDisappear(context: string): Promise<void> {
+		clearTimeout(this._holdTimers.get(context));
+		this._holdTimers.delete(context);
 		this._selectedSceneCache.delete(context);
+	}
+
+	private async _applySelectedScene(context: string): Promise<void> {
+		if (!this.contexts.has(context)) return;
+		const { settings, displayIdx } = this.contexts.get(context)!;
+		this._warnIfDisconnected(context, settings);
+		await Promise.allSettled(settings.map(async (socketSettings, socketIdx) => {
+			if (!socketSettings || !sockets[socketIdx].isConnected) return;
+			const sceneName = this._getSelectedSceneName(context, socketSettings, socketIdx, this._getFilteredScenes(socketSettings, socketIdx, context));
+			if (!sceneName) return;
+			if (socketSettings.studioTarget === 'program') {
+				await sockets[socketIdx].call('SetCurrentProgramScene', { sceneName });
+				this._currentProgramSceneName[socketIdx] = sceneName;
+				return;
+			}
+			if (!this._studioModeEnabled[socketIdx]) return;
+			await sockets[socketIdx].call('SetCurrentPreviewScene', { sceneName });
+			this._currentPreviewSceneName[socketIdx] = sceneName;
+		}));
+		this._selectedSceneCache.set(context, new Array(sockets.length).fill(undefined));
+		this._updateDialFeedback(context, displayIdx);
+	}
+
+	private _revertSelection(context: string): void {
+		if (!this.contexts.has(context)) return;
+		const { settings, displayIdx } = this.contexts.get(context)!;
+		this._warnIfDisconnected(context, settings);
+		this._selectedSceneCache.set(context, new Array(sockets.length).fill(undefined));
+		this._updateDialFeedback(context, displayIdx);
 	}
 
 	override async onContextSettingsUpdated(context: string, { displayIdx }: ContextData<ActionSettings>): Promise<void> {

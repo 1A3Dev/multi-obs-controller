@@ -405,7 +405,7 @@
 			"UUID": "dev.theca11.multiobs.scenepreviewdial",
 			"Icon": "assets/actions/scenepreviewdial/icon",
 			"Name": "Scene Preview/Program",
-			"Tooltip": "Browse scenes with a Stream Deck + dial, push to switch Preview or Program (configurable) to the selected scene, or tap the screen to cancel",
+			"Tooltip": "Browse scenes with a Stream Deck + dial, push or tap the screen to switch Preview or Program (configurable) to the selected scene, or hold to cancel",
 			"Controllers": ["Encoder"],
 			"States": [
 				{
@@ -417,8 +417,8 @@
 				"layout": "actions/scenepreviewdial/layout.json",
 				"TriggerDescription": {
 					"Rotate": "Browse scenes",
-					"Push": "Switch to selected scene",
-					"Touch": "Cancel and revert to current scene"
+					"Push": "Switch to selected scene, hold to revert to current scene",
+					"Touch": "Switch to selected scene, hold to revert to current scene"
 				}
 			}
 		},
