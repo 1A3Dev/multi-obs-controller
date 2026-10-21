@@ -32,7 +32,7 @@ $SD.onDidReceiveGlobalSettings(({ payload }: DidReceiveGlobalSettingsData<Global
 		socket.setRetryInterval(server?.retryIntervalS);
 	});
 
-	if (!settings.servers?.length || settings.servers.some((server) => !server.id)) {
+	if (!Array.isArray(settings.servers) || settings.servers.some((server) => !server.id)) {
 		const migrated: GlobalSettings = { ...settings, servers };
 		Object.keys(migrated).forEach((key) => {
 			if (/^(ip|port|pwd)\d+$/.test(key)) delete migrated[key as keyof GlobalSettings];
