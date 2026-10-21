@@ -187,7 +187,7 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 		const idx = filters.indexOf(selected);
 		const percent = filters.length > 1 ? Math.round((idx / (filters.length - 1)) * 100) : 100;
 		$SD.setFeedback(context, this._dimFeedback({
-			status: { value: `${selected.filterEnabled ? 'ENABLED' : 'DISABLED'} · ${idx + 1}/${filters.length}`, color: selected.filterEnabled ? ENABLED_COLOR : DISABLED_COLOR },
+			status: { value: selected.filterEnabled ? 'ENABLED' : 'DISABLED', color: selected.filterEnabled ? ENABLED_COLOR : DISABLED_COLOR },
 			title,
 			value: selected.filterName,
 			indicator: percent,
