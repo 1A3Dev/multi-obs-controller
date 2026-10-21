@@ -286,19 +286,8 @@ export function getIngestDisplayName(ingest: IrltkIngest, server?: ServerConfig)
 	return server?.ingestAlias?.[ingest.name] || ingest.name;
 }
 
-/**
- * The server's Ingest → Scene mapping, by OBS source name. While a streamer is set it comes from the
- * streamer's linked scenes (matched case-insensitively by ingest name, via the last known name of
- * each ingest source) instead of the mapping configured in General Configuration
- */
+/** The server's Ingest → Scene mapping configured in General Configuration, by OBS source name */
 export function getIngestSceneMap(socketIdx: number): { ingest: string, scene: string }[] {
 	const server = resolveServers(globalSettings)[socketIdx];
-	if (server?.irltk !== 'true' || !server.streamer?.trim()) {
-		return (server?.ingestSceneMap ?? []).filter((m): m is { ingest: string, scene: string } => !!m.ingest && !!m.scene);
-	}
-	const sceneByName = new Map(Object.entries(server.ingestScene ?? {}).map(([name, scene]) => [name.toLowerCase(), scene]));
-	return [...lastKnownIngestNames[socketIdx]].flatMap(([source, name]) => {
-		const scene = sceneByName.get(name.toLowerCase());
-		return scene ? [{ ingest: source, scene }] : [];
-	});
+	return (server?.ingestSceneMap ?? []).filter((m): m is { ingest: string, scene: string } => !!m.ingest && !!m.scene);
 }

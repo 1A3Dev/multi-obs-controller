@@ -1,6 +1,5 @@
 import { resolveServers } from '../actions/globalSettings';
 import * as pluginActions from '../actions/index';
-import '../actions/streamerSync';
 import { DidReceiveGlobalSettingsData, GlobalSettings } from '../actions/types';
 import { sockets } from './sockets';
 import { SDUtils } from './utils';

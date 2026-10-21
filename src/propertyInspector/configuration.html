@@ -255,51 +255,6 @@
 				white-space: nowrap;
 			}
 
-			.streamer-locked-note {
-				display: none;
-				font-size: 8pt;
-				opacity: 0.6;
-				margin-bottom: 4px;
-			}
-
-			.server-row.streamer-locked .streamer-locked-note {
-				display: block;
-			}
-
-			/* While a streamer is set, its linked scenes replace the manual Ingest -> Scene Mapping (kept for when the streamer is cleared) */
-			.streamer-scene-items,
-			.server-row.streamer-locked .ingest-scene-items,
-			.server-row.streamer-locked .add-ingest-scene-line {
-				display: none;
-			}
-
-			.server-row.streamer-locked .streamer-scene-items {
-				display: block;
-			}
-
-			/* One muted look for every locked field - read-only inputs and disabled selects alike (and without sdpi's red :disabled text) */
-			.streamer-scene-items input[readonly],
-			.server-row.streamer-locked .server-pinned-ingests input[readonly],
-			.server-row.streamer-locked .server-ingest-aliases input[readonly],
-			.server-row.streamer-locked .server-ingest-aliases select:disabled {
-				background-color: #333333;
-				color: #8a8a8a;
-				opacity: 1;
-				cursor: default;
-				outline: none;
-			}
-
-			.server-row.streamer-locked .server-ingest-aliases select:disabled {
-				-webkit-appearance: none;
-				appearance: none;
-			}
-
-			/* Pinned ingests & aliases come from the streamer's settings - no adding/moving/removing */
-			.server-row.streamer-locked .server-pinned-ingests button,
-			.server-row.streamer-locked .server-ingest-aliases button {
-				display: none;
-			}
-
 			.server-pinned-ingests-label {
 				font-size: 9pt;
 				opacity: 0.75;
@@ -453,12 +408,6 @@
 							IRLToolkit Ingest Scene action to look up which scene to switch to for a given ingest
 							on that server (ingest and scene names can differ between servers).
 						</p>
-						<p>
-							Set a Streamer name to fill the server's Pinned Ingests and Ingest Aliases &amp;
-							Categories from that streamer's settings (1a3.uk userscript settings). While a streamer
-							is set those lists are read-only - use Refresh (or Refresh all streamers) to pull the
-							latest, or clear the Streamer name to edit them by hand.
-						</p>
 					</details>
 					<div class="select-all-line" title="Tick/untick every server's export checkbox">
 						<input id="exportSelectAll" type="checkbox" checked>
@@ -468,7 +417,6 @@
 					<div class="sdpi-item">
 						<div class="sdpi-item-label empty"></div>
 						<div class="sdpi-item-value" style="display: flex; gap: 6px; justify-content: flex-end;">
-							<button id="refreshAllStreamers" title="Re-fetch the streamer's settings for every server with a streamer set">Refresh all streamers</button>
 							<button id="addServer">Add server</button>
 						</div>
 					</div>
