@@ -5,7 +5,7 @@ import { SDUtils } from '../plugin/utils';
 import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS } from '../shared/constants';
 import { StateEnum } from './StateEnum';
 import { globalSettings, resolveServers, resolveTargetIds, resolveTargetIndices } from './globalSettings';
-import { getIngestContextOverride, getIngests, getLastKnownIngestNames, sortIngests } from './irltkIngests';
+import { getIngestContextOverride, getIngests, getLastKnownIngestNames, setDynamicIngestPositions, sortIngests } from './irltkIngests';
 import { getLastKnownScenes, getScenesLists } from './lists';
 import { ContextData, SocketSettings, ConstructorParams, DidReceiveSettingsData, KeyDownData, KeyUpData, PartiallyRequired, PersistentSettings, SendToPluginData, WillAppearData, WillDisappearData } from './types';
 
@@ -98,6 +98,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 			const { settings, isInMultiAction } = payload;
 			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			setDynamicIngestPositions(context, settingsArray);
 			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
 				targets,
@@ -118,6 +119,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this.onWillDisappear((evtData: WillDisappearData<any>) => {
 			const { context } = evtData;
 			this._contexts.delete(context);
+			setDynamicIngestPositions(context);
 			if (this.onContextDisappear) this.onContextDisappear(context);
 		});
 
@@ -126,6 +128,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 			const { settings, isInMultiAction } = payload;
 			this._migrateLegacySettings(context, settings);
 			const settingsArray = this.getSettingsArray(settings);
+			setDynamicIngestPositions(context, settingsArray);
 			const targets = this.getTargets(settings);
 			const contextData: ContextData<T> = {
 				targets,

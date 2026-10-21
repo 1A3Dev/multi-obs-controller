@@ -36,7 +36,7 @@ export type IrltkTargetSettings = {
 
 export type IngestThresholds = { low: number, offline: number };
 
-export const INGEST_PAGE_SIZE = 4;
+const DEFAULT_INGEST_PAGE_SIZE = 4;
 
 export function getIngestProfileName(deviceType: number | undefined): string | undefined {
 	return deviceType !== undefined ? INGEST_PROFILE_NAMES[deviceType] : undefined;
@@ -60,6 +60,9 @@ const bitrateHistory: Map<string, number[]>[] = new Array(sockets.length).fill(n
 
 const currentPage: number[] = new Array(sockets.length).fill(1);
 const pageListeners = new Set<(socketIdx: number) => void>();
+
+/** Dynamic-position ingest buttons currently on screen: <context, ingestIndex per socket (0 if none)>. The page size follows the highest one, so it matches the open profile's layout */
+const dynamicIngestPositions = new Map<string, number[]>();
 
 export type IngestContextOverride = { target?: number, includeOffline?: boolean, studioTarget?: 'preview' | 'program' };
 let ingestContextOverride: IngestContextOverride = {};
@@ -162,10 +165,35 @@ export function getIngestPage(socketIdx: number): number {
 	return currentPage[socketIdx];
 }
 
+export function getIngestPageSize(socketIdx: number): number {
+	const positions = [...dynamicIngestPositions.values()].map(perSocket => perSocket[socketIdx] ?? 0);
+	return Math.max(0, ...positions) || DEFAULT_INGEST_PAGE_SIZE;
+}
+
+/**
+ * Track the dynamic ingest positions of a visible button (or remove it, with no settings), re-paging
+ * every socket whose page size changes as a result
+ */
+export function setDynamicIngestPositions(context: string, settings?: (Partial<IrltkTargetSettings> | null)[]): void {
+	const before = sockets.map((_, socketIdx) => getIngestPageSize(socketIdx));
+	const positions = settings?.map(socketSettings => {
+		const pos = socketSettings?.ingestTargetMode === 'dynamic' ? Number(socketSettings.ingestIndex) : 0;
+		return Number.isInteger(pos) && pos > 0 ? pos : 0;
+	});
+	if (positions?.some(pos => pos > 0)) dynamicIngestPositions.set(context, positions);
+	else dynamicIngestPositions.delete(context);
+
+	before.forEach((size, socketIdx) => {
+		if (getIngestPageSize(socketIdx) === size) return;
+		currentPage[socketIdx] = Math.min(currentPage[socketIdx], getIngestPageCount(socketIdx));
+		pageListeners.forEach(fn => fn(socketIdx));
+	});
+}
+
 export function getIngestPageCount(socketIdx: number): number {
 	const ingests = [...getIngests(socketIdx).values()];
 	const count = shouldIncludeOfflineIngests() ? ingests.length : ingests.filter(i => isIngestOnlineWithGrace(i, getThresholds(socketIdx), socketIdx)).length;
-	return Math.max(1, Math.ceil(count / INGEST_PAGE_SIZE));
+	return Math.max(1, Math.ceil(count / getIngestPageSize(socketIdx)));
 }
 
 export function setIngestPage(socketIdx: number, page: number): void {
@@ -270,7 +298,7 @@ export function resolveIngest(ingestsBySourceMap: Map<string, IrltkIngest>, sett
 			ingests = ingests.filter(i => isIngestOnlineWithGrace(i, ingestThresholds, socketIdx));
 		}
 		if (paging) {
-			pos += (getIngestPage(socketIdx) - 1) * INGEST_PAGE_SIZE;
+			pos += (getIngestPage(socketIdx) - 1) * getIngestPageSize(socketIdx);
 		}
 		const sorted = ingestThresholds ? sortIngestsOnlineFirst(ingests, ingestThresholds, socketIdx) : sortIngests(ingests, socketIdx);
 		return sorted[pos - 1];
