@@ -433,7 +433,6 @@ function refreshServerUI() {
 	const rows = Array.from(document.querySelectorAll('.server-row'));
 	rows.forEach((row, i) => {
 		row.querySelector('input[name="serverName"]').placeholder = `OBS #${i + 1}`;
-		row.querySelector('.remove').disabled = rows.length <= 1;
 	});
 	document.querySelector('#addServer').disabled = rows.length >= MAX_SERVERS;
 	syncSelectAll('#exportSelectAll', '.server-items', '.export-select');

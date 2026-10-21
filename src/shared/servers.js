@@ -11,7 +11,7 @@ export function genServerId() {
  * @returns {Record<string, any>[]}
  */
 export function resolveServers(settings) {
-	if (Array.isArray(settings.servers) && settings.servers.length) {
+	if (Array.isArray(settings.servers)) {
 		const servers = settings.servers.map((server) => (server.id ? server : { ...server, id: genServerId() }));
 		return migrateGlobalIngestAliases(settings, servers);
 	}
@@ -23,9 +23,7 @@ export function resolveServers(settings) {
 		const pwd = settings[`pwd${i}`];
 		if (ip || port || pwd) legacy.push({ id: genServerId(), name: `OBS #${i}`, ip, port, pwd });
 	}
-	if (legacy.length) return legacy;
-
-	return [{ id: genServerId(), name: 'OBS #1' }, { id: genServerId(), name: 'OBS #2' }];
+	return legacy;
 }
 
 /**
