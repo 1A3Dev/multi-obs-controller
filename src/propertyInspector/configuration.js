@@ -1,5 +1,5 @@
 import { INGEST_CATEGORIES, MAX_SERVERS } from '../shared/constants.js';
-import { genServerId, resolveServers, stripGlobalIngestAliases } from '../shared/servers.js';
+import { fetchStreamerIngests, genServerId, parseStreamerIngests, resolveServers, stripGlobalIngestAliases } from '../shared/servers.js';
 import { FormUtils } from './utils.js';
 
 // Per-server live ingest/scene lists, used to (re)populate the Ingest -> Scene Mapping and Ingest
@@ -71,6 +71,29 @@ function ingestSceneRowHtml(ingest = '', scene = '') {
 		<button class="remove icon-button icon-remove" title="Remove"></button>
 	</div>
 	`;
+}
+
+/**
+ * Read-only row for a scene linked to an ingest in the streamer's settings (no input names, so it
+ * stays out of the form values - serialized from the row's data attributes instead)
+ * @param {string} name Ingest name
+ * @param {string} scene
+ */
+function streamerSceneRowHtml(name, scene) {
+	return `
+	<div class="server-row-line streamer-scene-row" data-name="${escapeHtml(name)}" data-scene="${escapeHtml(scene)}">
+		<div class="field-label"></div>
+		<input type="text" value="${escapeHtml(name)}" readonly style="flex: 1 0 0; min-width: 0;">
+		<input type="text" value="${escapeHtml(scene)}" readonly style="flex: 1 0 0; min-width: 0;">
+	</div>
+	`;
+}
+
+/**
+ * @param {Record<string, string> | undefined} ingestScene Ingest name -> scene
+ */
+function streamerSceneRowsHtml(ingestScene) {
+	return Object.entries(ingestScene ?? {}).map(([name, scene]) => streamerSceneRowHtml(name, scene)).join('');
 }
 
 const CATEGORY_OPTIONS = [
@@ -159,6 +182,92 @@ function refreshIngestSceneDatalists(serverRow) {
 	});
 }
 
+/**
+ * Streamer name whose settings drive this server's pinned ingests and aliases/categories, if any
+ * @param {HTMLElement} serverRow
+ */
+function getStreamerName(serverRow) {
+	if (!serverRow.querySelector('input[name="serverIrltk"]').checked) return '';
+	return serverRow.querySelector('input[name="serverStreamer"]').value.trim();
+}
+
+/**
+ * Make the fields filled in from the streamer's settings read-only while a streamer is set
+ * @param {HTMLElement} serverRow
+ */
+function applyStreamerLock(serverRow) {
+	const locked = !!getStreamerName(serverRow);
+	serverRow.classList.toggle('streamer-locked', locked);
+	serverRow.querySelectorAll('.server-pinned-ingests input, .server-ingest-aliases input').forEach((el) => { el.readOnly = locked; });
+	serverRow.querySelectorAll('.server-ingest-aliases select').forEach((el) => { el.disabled = locked; });
+	serverRow.querySelector('.refresh-streamer').disabled = !locked || serverRow.dataset.refreshing === 'true';
+}
+
+/**
+ * Replace a server's Pinned Ingests, Ingest Aliases & Categories and linked scene lists with streamer data
+ * @param {HTMLElement} serverRow
+ * @param {{ ingestPinned: string[], ingestAlias: Record<string, string>, ingestCategory: Record<string, string>, ingestScene: Record<string, string> }} data
+ * @param {number} fetchedAt
+ */
+function renderStreamerData(serverRow, { ingestPinned, ingestAlias, ingestCategory, ingestScene }, fetchedAt) {
+	serverRow.dataset.streamerFetchedAt = String(fetchedAt);
+	serverRow.querySelector('.pinned-ingest-items').innerHTML = (ingestPinned ?? []).map((name) => pinnedIngestRowHtml(name)).join('');
+	serverRow.querySelector('.streamer-scene-items').innerHTML = streamerSceneRowsHtml(ingestScene);
+	const names = [...new Set([...Object.keys(ingestAlias ?? {}), ...Object.keys(ingestCategory ?? {})])];
+	serverRow.querySelector('.ingest-alias-items').innerHTML = names
+	.map((name) => ingestAliasRowHtml(name, ingestAlias?.[name] || '', ingestCategory?.[name] || ''))
+	.join('');
+	refreshIngestAliasOverrideDatalists(serverRow);
+	applyStreamerLock(serverRow);
+}
+
+/**
+ * Re-fetch the streamer's settings for a server, replacing its Pinned Ingests (the streamer's own
+ * ingests) and Ingest Aliases & Categories (every ingest with a label/category) lists
+ * @param {HTMLElement} serverRow
+ */
+async function refreshStreamer(serverRow) {
+	const streamerName = getStreamerName(serverRow);
+	if (!streamerName || serverRow.dataset.refreshing === 'true') return;
+
+	const btn = serverRow.querySelector('.refresh-streamer');
+	serverRow.dataset.refreshing = 'true';
+	btn.textContent = 'Refreshing...';
+	applyStreamerLock(serverRow);
+	try {
+		const data = parseStreamerIngests(await fetchStreamerIngests(streamerName));
+		// Streamer was changed/cleared while fetching - drop the stale result
+		if (getStreamerName(serverRow) !== streamerName) return;
+
+		renderStreamerData(serverRow, data, Date.now());
+		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+	}
+	finally {
+		delete serverRow.dataset.refreshing;
+		btn.textContent = 'Refresh';
+		applyStreamerLock(serverRow);
+	}
+}
+
+/**
+ * Refresh every server with a streamer set, reporting all failures in a single alert
+ * @param {HTMLElement[]} serverRows
+ */
+async function refreshStreamers(serverRows) {
+	const targets = serverRows.filter((row) => getStreamerName(row));
+	const results = await Promise.allSettled(targets.map((row) => refreshStreamer(row)));
+	const names = getServerNames();
+	const allRows = Array.from(document.querySelectorAll('.server-row'));
+	const failures = results
+	.map((result, i) => ({ result, row: targets[i] }))
+	.filter(({ result }) => result.status === 'rejected')
+	.map(({ result, row }) => `${names[allRows.indexOf(row)] ?? 'Server'} (${getStreamerName(row)}): ${result.reason?.message ?? result.reason}`);
+	if (failures.length) {
+		console.error('Error refreshing streamer settings', failures);
+		window.alert(`Failed to refresh streamer settings:\n${failures.join('\n')}`);
+	}
+}
+
 let serverRowNonce = 0;
 
 const EXPANDED_SERVERS_KEY = 'multiObsController.expandedServers';
@@ -188,18 +297,24 @@ function setServerExpanded(row, expanded) {
  * IRLTK subsection dropdown, so the useful bits stay visible while things are collapsed
  */
 function refreshServerSummaries() {
-	document.querySelectorAll('.server-row').forEach((row) => {
+	const rows = Array.from(document.querySelectorAll('.server-row'));
+	document.querySelector('#refreshAllStreamers').disabled = !rows.some((row) => getStreamerName(row));
+	rows.forEach((row) => {
+		applyStreamerLock(row);
 		const ip = row.querySelector('input[name="serverIp"]').value.trim();
 		const port = row.querySelector('input[name="serverPort"]').value.trim();
 		const irltk = row.querySelector('input[name="serverIrltk"]').checked;
+		const streamer = getStreamerName(row);
 		const address = ip ? `${ip}${port ? `:${port}` : ''}` : 'Not configured';
-		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK` : address;
+		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK${streamer ? ` (${streamer})` : ''}` : address;
 
 		const setCount = (selector, count) => {
 			row.querySelector(`${selector} .count`).textContent = count ? `(${count})` : '';
 		};
 		setCount('.server-pinned-ingests', Array.from(row.querySelectorAll('input[name="ingestPinned"]')).filter((el) => el.value.trim()).length);
-		setCount('.server-ingest-scenes', Array.from(row.querySelectorAll('.ingest-scene-row')).filter((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim() || r.querySelector('input[name="ingestSceneScene"]').value.trim()).length);
+		setCount('.server-ingest-scenes', streamer
+			? row.querySelectorAll('.streamer-scene-row').length
+			: Array.from(row.querySelectorAll('.ingest-scene-row')).filter((r) => r.querySelector('input[name="ingestSceneIngest"]').value.trim() || r.querySelector('input[name="ingestSceneScene"]').value.trim()).length);
 		setCount('.server-ingest-aliases', Array.from(row.querySelectorAll('input[name="ingestAliasName"]')).filter((el) => el.value.trim()).length);
 	});
 }
@@ -216,10 +331,11 @@ function serverRowHtml(server = {}) {
 	const secureId = `serverSecure-${serverRowNonce++}`;
 	const exportSelectId = `serverExport-${serverRowNonce++}`;
 	const retryInterval = escapeHtml(server.retryIntervalS || '');
+	const streamer = escapeHtml(server.streamer || '');
 	const irltkOnlyStyle = checked ? '' : 'display: none;';
 	const pinnedIngests = Array.isArray(server.ingestPinned)
 		? server.ingestPinned
-		: server.ingestPinned ? [server.ingestPinned] : [''];
+		: server.ingestPinned ? [server.ingestPinned] : server.streamer ? [] : [''];
 	const pinnedIngestRows = pinnedIngests.map((value) => pinnedIngestRowHtml(value)).join('');
 	const ingestSceneMap = Array.isArray(server.ingestSceneMap) && server.ingestSceneMap.length
 		? server.ingestSceneMap
@@ -231,7 +347,7 @@ function serverRowHtml(server = {}) {
 	.join('');
 	const collapsed = expandedServerIds.has(id) ? '' : 'collapsed';
 	return `
-	<div class="server-row ${collapsed}" data-id="${id}">
+	<div class="server-row ${collapsed}" data-id="${id}" data-streamer-fetched-at="${Number(server.streamerFetchedAt) || ''}">
 		<div class="server-row-header">
 			<button class="toggle" title="Show/hide server settings"></button>
 			<input id="${exportSelectId}" class="export-select" type="checkbox" checked>
@@ -269,8 +385,14 @@ function serverRowHtml(server = {}) {
 			<input id="${irltkId}" type="checkbox" name="serverIrltk" value="true" ${checked}>
 			<label for="${irltkId}" title="Managed by IRLToolkit - the only servers offered to IRLToolkit actions, and hidden from actions IRLToolkit itself disables"><span></span>Managed by IRLToolkit</label>
 		</div>
+		<div class="server-row-line irltk-only" style="${irltkOnlyStyle}">
+			<div class="field-label">Streamer</div>
+			<input type="text" name="serverStreamer" value="${streamer}" placeholder="None" style="flex: 1 0 0;" title="Streamer name in the 1a3.uk userscript settings API. When set, this server's Pinned Ingests, Ingest Aliases &amp; Categories and Ingest → Scene Mapping come from that streamer's settings and are read-only here">
+			<button class="refresh-streamer" title="Re-fetch this streamer's settings, overwriting this server's Pinned Ingests and Ingest Aliases &amp; Categories">Refresh</button>
+		</div>
 		<details class="server-subsection server-pinned-ingests irltk-only" style="${irltkOnlyStyle}">
 			<summary title="Ingest names (as shown in IRLToolkit), sorted first within their category in this order, when using dynamic ingest position targeting on this server">Pinned Ingests <span class="count"></span></summary>
+			<div class="streamer-locked-note">Set from the streamer's settings - use Refresh to update.</div>
 			<div class="pinned-ingest-items">${pinnedIngestRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
@@ -278,15 +400,18 @@ function serverRowHtml(server = {}) {
 			</div>
 		</details>
 		<details class="server-subsection server-ingest-scenes irltk-only" style="${irltkOnlyStyle}">
-			<summary title="Maps each ingest (matched by OBS source name, so it survives IRLToolkit renames) to the scene it should switch to on this server, used by the IRLToolkit Ingest Scene action">Ingest → Scene Mapping <span class="count"></span></summary>
+			<summary title="Maps each ingest (matched by OBS source name, so it survives IRLToolkit renames) to the scene it should switch to on this server, used by the IRLToolkit Ingest Scene action. While a streamer is set, the streamer's linked scenes (matched by ingest name) are used instead">Ingest → Scene Mapping <span class="count"></span></summary>
+			<div class="streamer-locked-note">Linked scenes from the streamer's settings (by ingest name) - use Refresh to update. The mapping set here is used again if the streamer is cleared.</div>
+			<div class="streamer-scene-items">${streamerSceneRowsHtml(server.ingestScene)}</div>
 			<div class="ingest-scene-items">${ingestSceneRows}</div>
-			<div class="server-row-line">
+			<div class="server-row-line add-ingest-scene-line">
 				<div class="field-label"></div>
 				<button class="add-ingest-scene" style="margin-left: auto;">Add mapping</button>
 			</div>
 		</details>
 		<details class="server-subsection server-ingest-aliases irltk-only" style="${irltkOnlyStyle}">
 			<summary title="Optional display name and/or category for each IRLToolkit ingest on this server, matched by ingest name (as shown in IRLToolkit, which doesn't support renaming ingests)">Ingest Aliases &amp; Categories <span class="count"></span></summary>
+			<div class="streamer-locked-note">Set from the streamer's settings - use Refresh to update.</div>
 			<div class="ingest-alias-items">${ingestAliasRows}</div>
 			<div class="server-row-line">
 				<div class="field-label"></div>
@@ -364,6 +489,11 @@ document.querySelector('.server-items').addEventListener('click', (e) => {
 		e.target.closest('.server-pinned-ingests').querySelector('.pinned-ingest-items')
 		.insertAdjacentHTML('beforeend', pinnedIngestRowHtml());
 		document.querySelector('form').dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+		return;
+	}
+
+	if (e.target.matches('.refresh-streamer')) {
+		refreshStreamers([e.target.closest('.server-row')]);
 		return;
 	}
 
@@ -459,9 +589,20 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 	}
 });
 
+// Fetch the streamer's settings as soon as a (new) streamer name is committed
+document.querySelector('.server-items').addEventListener('change', (e) => {
+	if (e.target.matches('input[name="serverStreamer"]')) refreshStreamers([e.target.closest('.server-row')]);
+});
+
+document.querySelector('#refreshAllStreamers').addEventListener('click', (e) => {
+	e.preventDefault();
+	refreshStreamers(Array.from(document.querySelectorAll('.server-row')));
+});
+
 function serializeFormValue(formEl) {
 	const { serverName, serverIp, serverPort, serverPwd, ...rest } = getFormValue(formEl);
 	delete rest.serverIrltk;
+	delete rest.serverStreamer;
 	delete rest.serverSecure;
 	delete rest.serverRetryInterval;
 	delete rest.ingestPinned;
@@ -485,6 +626,8 @@ function serializeFormValue(formEl) {
 			port: ports[i] || '',
 			pwd: pwds[i] || '',
 			irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
+			streamer: row.querySelector('input[name="serverStreamer"]').value.trim() || undefined,
+			streamerFetchedAt: Number(row.dataset.streamerFetchedAt) || undefined,
 			secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
 			retryIntervalS: row.querySelector('input[name="serverRetryInterval"]').value || undefined,
 			ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
@@ -492,6 +635,7 @@ function serializeFormValue(formEl) {
 				ingest: r.querySelector('input[name="ingestSceneIngest"]').value,
 				scene: r.querySelector('input[name="ingestSceneScene"]').value,
 			})).filter((m) => m.ingest || m.scene),
+			ingestScene: Object.fromEntries(Array.from(row.querySelectorAll('.streamer-scene-row')).map((r) => [r.dataset.name, r.dataset.scene])),
 			ingestAlias: Object.fromEntries(
 				aliasRows
 				.map((r) => [r.querySelector('input[name="ingestAliasName"]').value, r.querySelector('input[name="ingestAliasValue"]').value.trim()])
@@ -522,11 +666,22 @@ function cloneForForm() {
 }
 
 /**
- * Called by the inspector when the plugin saves global settings while this window is open: adopt
- * the plugin's changes so this window's next save doesn't revert them
+ * Called by the inspector when the plugin saves global settings while this window is open (e.g. a
+ * background streamer refresh): show the newer streamer data in place - those lists are read-only
+ * while a streamer is set, so there are no edits here to lose - and adopt the plugin's other changes
+ * so this window's next save doesn't revert them
  * @param {Record<string, any>} settings
  */
 window.onExternalGlobalSettings = (settings) => {
+	const latestServers = resolveServers(settings);
+	document.querySelectorAll('.server-row').forEach((row) => {
+		const server = latestServers.find((s) => s.id === row.dataset.id);
+		const streamer = getStreamerName(row);
+		if (!server || !streamer || server.streamer !== streamer || row.dataset.refreshing === 'true') return;
+		if ((server.streamerFetchedAt ?? 0) <= (Number(row.dataset.streamerFetchedAt) || 0)) return;
+		renderStreamerData(row, server, server.streamerFetchedAt);
+	});
+	refreshServerSummaries();
 	globalSettings = stripGlobalIngestAliases({ ...settings, ...serializeFormValue(document.querySelector('form')) });
 };
 
