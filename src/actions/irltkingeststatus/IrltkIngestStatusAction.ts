@@ -155,13 +155,19 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 
 		const ingest = resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx));
 		const name = ingest ? getIngestDisplayName(ingest, resolveServers(globalSettings)[displayIdx]) : '';
-		const bitrate = ingest && isIngestOnline(ingest, getThresholds(displayIdx)) ? `${ingest.router_bitrate.toLocaleString('en-US')} kbps` : '';
+		const online = !!ingest && isIngestOnline(ingest, getThresholds(displayIdx));
+		const useMbps = globalSettings.bitrateUnit === 'mbps';
+		const bitrateValue = !online ? ''
+			: useMbps ? (ingest.router_bitrate / 1000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+				: ingest.router_bitrate.toLocaleString('en-US');
+		const bitrateUnit = !online ? '' : useMbps ? 'Mbps' : 'kbps';
+		const bitrate = online ? `${bitrateValue} ${bitrateUnit}` : '';
 		const batteryPercent = socketSettings.tvuDevice ? getTvuBatteryPercent(socketSettings.tvuDevice.trim()) : undefined;
 		const battery = batteryPercent !== undefined ? `${batteryPercent}%` : '';
 
 		const templateLines = socketSettings.titleTemplate.split('\n');
 		const title = templateLines
-		.map(line => line.replace(/\{name\}/g, name).replace(/\{bitrate\}/g, bitrate).replace(/\{battery\}/g, battery))
+		.map(line => line.replace(/\{name\}/g, name).replace(/\{bitrate\}/g, bitrate).replace(/\{bitrateValue\}/g, bitrateValue).replace(/\{bitrateUnit\}/g, bitrateUnit).replace(/\{battery\}/g, battery))
 		.filter((line, i) => line !== '' || templateLines[i] === '')
 		.join('\n');
 		$SD.setTitle(context, title);

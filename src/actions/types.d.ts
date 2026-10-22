@@ -96,6 +96,7 @@ export type GlobalSettings = Partial<{
 	bgColorIntermediate: string
 	feedback: 'hide',
 	targetNumbers: 'bottom' | 'middle' | 'top' | 'hide',
+	bitrateUnit: 'kbps' | 'mbps',
 	debug: 'enabled',
 	ingestPinned: string | string[],
 	[key: `ingestProfileInstallPrompted__${string}`]: 'true',
