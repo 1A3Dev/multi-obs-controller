@@ -160,7 +160,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		const bitrateValue = !online ? ''
 			: useMbps ? (ingest.router_bitrate / 1000).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 				: ingest.router_bitrate.toLocaleString('en-US');
-		const bitrateUnit = !online ? '' : useMbps ? 'Mbps' : 'kbps';
+		const bitrateUnit = !online ? '' : useMbps ? 'Mbps' : 'Kbps';
 		const bitrate = online ? `${bitrateValue} ${bitrateUnit}` : '';
 		const batteryPercent = socketSettings.tvuDevice ? getTvuBatteryPercent(socketSettings.tvuDevice.trim()) : undefined;
 		const battery = batteryPercent !== undefined ? `${batteryPercent}%` : '';
