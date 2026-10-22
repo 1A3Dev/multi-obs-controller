@@ -36,7 +36,7 @@ export const fields = `
 	<div class="sdpi-item-label" data-i18n>TVU Pack</div>
 	<input class="sdpi-item-value" type="text" name="tvuDevice" placeholder="${$PI.localize('None')}">
 </div>
-<div type="textarea" class="sdpi-item" title="${$PI.localize('Key title. Supports variables: {name} for the ingest\'s display name, {bitrate} for its live bitrate (only while online), {battery} for the linked TVU pack\'s battery level (only while linked and known). Leave a line as just a variable to have it disappear when that variable is empty.')}">
+<div type="textarea" class="sdpi-item" title="${$PI.localize('Key title. Supports variables: {name} for the ingest\'s display name, {bitrate} for its live bitrate (only while online), {bitrateValue} and {bitrateUnit} for the bitrate number and its unit separately (e.g. to put them on different lines),{battery} for the linked TVU pack\'s battery level (only while linked and known). Leave a line as just a variable to have it disappear when that variable is empty.')}">
 	<div class="sdpi-item-label" data-i18n>Title</div>
 	<div class="sdpi-item-value textarea">
 		<textarea type="textarea" name="titleTemplate" style="min-height: 4em;" placeholder="{name}&#10;{bitrate}&#10;{battery}"></textarea>
