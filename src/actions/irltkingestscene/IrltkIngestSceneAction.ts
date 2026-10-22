@@ -36,7 +36,8 @@ export class IrltkIngestSceneAction extends AbstractStatefulRequestAction<Action
 			for (const [context, contextData] of this.contexts) {
 				const socketSettings = contextData.settings[socketIdx];
 				if (!socketSettings || !hasIngestTarget(socketSettings)) continue;
-				this.setContextSocketState(context, socketIdx, this._computeState(socketIdx, socketSettings));
+				const newState = sockets[socketIdx].isConnected ? this._computeState(socketIdx, socketSettings) : StateEnum.Unavailable;
+				this.setContextSocketState(context, socketIdx, newState);
 				this.updateKeyImage(context);
 				if (contextData.displayIdx === socketIdx) this._updateSceneTitle(context, contextData);
 			}
