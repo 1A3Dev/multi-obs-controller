@@ -21,12 +21,12 @@ const KEY_COLORS = {
 	[KeyState.Offline]: '#f61011',
 };
 
-const GRAPH = { left: 16, right: 128, top: 28, bottom: 128 };
+const GRAPH = { left: 16, right: 128, top: 16, bottom: 128 };
 
 function renderGraphKey(samples: number[], color: string, thresholds: { low: number, offline: number }): string {
 	let graph = '';
 	if (samples.length >= 2) {
-		const max = Math.max(...samples, thresholds.low, thresholds.offline, 1) * 1.1;
+		const max = Math.max(...samples, thresholds.low, thresholds.offline, 1);
 		const toY = (value: number) => GRAPH.bottom - (value / max) * (GRAPH.bottom - GRAPH.top);
 		const step = (GRAPH.right - GRAPH.left) / (BITRATE_HISTORY_LENGTH - 1);
 		const points = samples.map((value, i) => {
@@ -37,10 +37,20 @@ function renderGraphKey(samples: number[], color: string, thresholds: { low: num
 			? `<line x1="${GRAPH.left}" y1="${toY(value).toFixed(1)}" x2="${GRAPH.right}" y2="${toY(value).toFixed(1)}" stroke="${lineColor}" stroke-width="2" stroke-dasharray="6,4" stroke-opacity="0.8"/>`
 			: '';
 		const [firstX] = points[0].split(',');
-		graph = `<polygon points="${firstX},${GRAPH.bottom} ${points.join(' ')} ${GRAPH.right},${GRAPH.bottom}" fill="${color}" fill-opacity="0.25"/>`
+		// Hard-stop vertical gradient so each part of the line is coloured by the bitrate band it sits in
+		const toOffset = (value: number) => (1 - Math.max(value, 0) / max).toFixed(4);
+		const lowOffset = toOffset(thresholds.low);
+		const offlineOffset = toOffset(thresholds.offline);
+		const band = (offset: string, stopColor: string) => `<stop offset="${offset}" stop-color="${stopColor}"/>`;
+		graph = `<defs><linearGradient id="bands" gradientUnits="userSpaceOnUse" x1="0" y1="${GRAPH.top}" x2="0" y2="${GRAPH.bottom}">`
+			+ band('0', KEY_COLORS[KeyState.Online]) + band(lowOffset, KEY_COLORS[KeyState.Online])
+			+ band(lowOffset, KEY_COLORS[KeyState.LowBitrate]) + band(offlineOffset, KEY_COLORS[KeyState.LowBitrate])
+			+ band(offlineOffset, KEY_COLORS[KeyState.Offline]) + band('1', KEY_COLORS[KeyState.Offline])
+			+ '</linearGradient></defs>'
+			+ `<polygon points="${firstX},${GRAPH.bottom} ${points.join(' ')} ${GRAPH.right},${GRAPH.bottom}" fill="url(#bands)" fill-opacity="0.25"/>`
 			+ thresholdLine(thresholds.offline, KEY_COLORS[KeyState.Offline])
 			+ thresholdLine(thresholds.low, KEY_COLORS[KeyState.LowBitrate])
-			+ `<polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+			+ `<polyline points="${points.join(' ')}" fill="none" stroke="url(#bands)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
 	}
 	return '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">'
 		+ '<rect x="0" y="0" width="144" height="144" fill="#000"/>'
