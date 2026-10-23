@@ -23,18 +23,23 @@ const KEY_COLORS = {
 
 const GRAPH = { left: 16, right: 128, top: 28, bottom: 128 };
 
-function renderGraphKey(samples: number[], color: string): string {
+function renderGraphKey(samples: number[], color: string, thresholds: { low: number, offline: number }): string {
 	let graph = '';
 	if (samples.length >= 2) {
-		const max = Math.max(...samples, 1) * 1.1;
+		const max = Math.max(...samples, thresholds.low, thresholds.offline, 1) * 1.1;
+		const toY = (value: number) => GRAPH.bottom - (value / max) * (GRAPH.bottom - GRAPH.top);
 		const step = (GRAPH.right - GRAPH.left) / (BITRATE_HISTORY_LENGTH - 1);
 		const points = samples.map((value, i) => {
 			const x = GRAPH.right - (samples.length - 1 - i) * step;
-			const y = GRAPH.bottom - (value / max) * (GRAPH.bottom - GRAPH.top);
-			return `${x.toFixed(1)},${y.toFixed(1)}`;
+			return `${x.toFixed(1)},${toY(value).toFixed(1)}`;
 		});
+		const thresholdLine = (value: number, lineColor: string) => value > 0
+			? `<line x1="${GRAPH.left}" y1="${toY(value).toFixed(1)}" x2="${GRAPH.right}" y2="${toY(value).toFixed(1)}" stroke="${lineColor}" stroke-width="2" stroke-dasharray="6,4" stroke-opacity="0.8"/>`
+			: '';
 		const [firstX] = points[0].split(',');
 		graph = `<polygon points="${firstX},${GRAPH.bottom} ${points.join(' ')} ${GRAPH.right},${GRAPH.bottom}" fill="${color}" fill-opacity="0.25"/>`
+			+ thresholdLine(thresholds.offline, KEY_COLORS[KeyState.Offline])
+			+ thresholdLine(thresholds.low, KEY_COLORS[KeyState.LowBitrate])
 			+ `<polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
 	}
 	return '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">'
@@ -126,7 +131,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 			$SD.setImage(context, undefined, keyState);
 			return;
 		}
-		const svg = renderGraphKey(samples, KEY_COLORS[keyState]);
+		const svg = renderGraphKey(samples, KEY_COLORS[keyState], getThresholds(displayIdx));
 		$SD.setImage(context, `data:image/svg+xml;base64,${btoa(svg)}`, keyState);
 	}
 
