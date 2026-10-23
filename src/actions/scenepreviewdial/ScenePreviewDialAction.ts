@@ -78,11 +78,25 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 				this._refreshUntouchedContexts(socketIdx, 'preview');
 			});
 
-			socket.on('StudioModeStateChanged', ({ studioModeEnabled }) => {
+			socket.on('StudioModeStateChanged', async ({ studioModeEnabled }) => {
 				this._studioModeEnabled[socketIdx] = studioModeEnabled;
-				if (!studioModeEnabled) this._currentPreviewSceneName[socketIdx] = undefined;
-				for (const [context, { displayIdx }] of this.contexts) {
-					if (displayIdx === socketIdx) this._updateDialFeedback(context, displayIdx);
+				// OBS copies the program scene into preview on enable without firing CurrentPreviewSceneChanged
+				this._currentPreviewSceneName[socketIdx] = studioModeEnabled ? this._currentProgramSceneName[socketIdx] : undefined;
+				const refresh = () => {
+					for (const [context, { displayIdx }] of this.contexts) {
+						if (displayIdx === socketIdx) this._updateDialFeedback(context, displayIdx);
+					}
+				};
+				refresh();
+				if (!studioModeEnabled) return;
+				try {
+					const { currentPreviewSceneName } = await socket.call('GetCurrentPreviewScene');
+					if (!this._studioModeEnabled[socketIdx] || currentPreviewSceneName === this._currentPreviewSceneName[socketIdx]) return;
+					this._currentPreviewSceneName[socketIdx] = currentPreviewSceneName;
+					refresh();
+				}
+				catch {
+					// Studio mode was disabled again before the request completed
 				}
 			});
 
