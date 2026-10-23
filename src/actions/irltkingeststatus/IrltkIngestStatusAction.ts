@@ -21,12 +21,12 @@ const KEY_COLORS = {
 	[KeyState.Offline]: '#f61011',
 };
 
-const GRAPH = { left: 16, right: 128, top: 28, bottom: 128 };
+const GRAPH = { left: 16, right: 128, top: 16, bottom: 128 };
 
 function renderGraphKey(samples: number[], color: string, thresholds: { low: number, offline: number }): string {
 	let graph = '';
 	if (samples.length >= 2) {
-		const max = Math.max(...samples, thresholds.low, thresholds.offline, 1) * 1.1;
+		const max = Math.max(...samples, thresholds.low, thresholds.offline, 1);
 		const toY = (value: number) => GRAPH.bottom - (value / max) * (GRAPH.bottom - GRAPH.top);
 		const step = (GRAPH.right - GRAPH.left) / (BITRATE_HISTORY_LENGTH - 1);
 		const points = samples.map((value, i) => {
