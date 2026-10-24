@@ -1,4 +1,5 @@
 import { FormUtils, localizeUI, mergeListsByKey, socketIndicesOf, getTabParams } from '../../propertyInspector/utils.js';
+import { isDialSeparatorScene } from '../../shared/constants.js';
 
 function escapeHtml(str) {
 	return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
@@ -34,9 +35,11 @@ function renderSceneList(container, { resetOrder = false } = {}) {
 	const topFirstScenesLists = cachedScenesLists.map((scenes) => [...(scenes ?? [])].reverse());
 	const liveScenes = mergeListsByKey(topFirstScenesLists, socketIndicesOf(tabContainer), 'sceneName');
 	const sceneOrder = resetOrder ? [] : toArray(params.sceneOrder);
-	const sceneNames = liveScenes.length
+	const sceneNames = (liveScenes.length
 		? [...new Set(liveScenes.map((scene) => scene.sceneName))]
-		: [...new Set([...sceneOrder, ...getConfiguredSceneNames(params)])];
+		: [...new Set([...sceneOrder, ...getConfiguredSceneNames(params)])])
+	// Separator scenes are always left out of the dial, so there's nothing to configure for them
+	.filter((sceneName) => !isDialSeparatorScene(sceneName));
 	// The order inputs stay disabled (so aren't saved) until the scenes are manually reordered
 	const hasCustomOrder = sceneOrder.length > 0;
 
