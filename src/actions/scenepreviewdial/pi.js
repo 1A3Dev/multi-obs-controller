@@ -48,14 +48,14 @@ function renderSceneList(container, { resetOrder = false } = {}) {
 		const excludeId = `sceneExclude-${tabContainer.id}-${rowIdx}`;
 		return `
 			<div class="sdpi-item scene-row">
-				<div class="sdpi-item-label" title="${name}">${name}</div>
-				<div class="sdpi-item-value" style="display: flex; gap: 8px; align-items: center;">
+				<div class="sdpi-item-label" title="${name}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">${name}</div>
+				<div class="sdpi-item-value" style="display: flex; gap: 6px; align-items: center; min-width: 0;">
 					<input type="hidden" name="sceneOrder" value="${name}" ${hasCustomOrder ? '' : 'disabled'}>
-					<input type="text" name="label__${name}" placeholder="${name}" title="${$PI.localize('Scene label tooltip')}" style="flex: 1; min-width: 0;">
+					<input type="text" name="label__${name}" placeholder="${name}" title="${$PI.localize('Scene label tooltip')}" style="flex: 1 1 0; width: 0; min-width: 0;">
 					<input type="checkbox" id="${excludeId}" name="exclude__${name}" value="true">
 					<label for="${excludeId}" style="white-space: nowrap; margin: 0; display: flex; align-items: center;"><span></span>${$PI.localize('Exclude')}</label>
-					<button class="down icon-button icon-down" style="margin-left: auto;" title="${$PI.localize('Move down')}"></button>
-					<button class="up icon-button icon-up" title="${$PI.localize('Move up')}"></button>
+					<button class="down icon-button icon-down" style="flex-shrink: 0;" title="${$PI.localize('Move down')}"></button>
+					<button class="up icon-button icon-up" style="flex-shrink: 0;" title="${$PI.localize('Move up')}"></button>
 				</div>
 			</div>
 		`;
