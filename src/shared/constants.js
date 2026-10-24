@@ -9,6 +9,19 @@ export const IRLTK_EXCLUDED_ACTIONS = ['createrecordchapter', 'refreshcapturedev
 // Action ids that can target the server of the last opened ingest profile instead of fixed servers
 export const DYNAMIC_TARGET_ACTIONS = ['triggerstudiomodetransition', 'streamstatus'];
 
+// Separator/header scenes, always left out of the Scene Preview dial - matched against the trimmed scene name
+export const DIAL_SEPARATOR_SCENE_NAMES = ['-=-'];
+export const DIAL_SEPARATOR_SCENE_PREFIXES = ['─── ✦'];
+
+/**
+ * @param {string} sceneName
+ * @returns {boolean}
+ */
+export function isDialSeparatorScene(sceneName) {
+	const trimmed = sceneName.trim();
+	return DIAL_SEPARATOR_SCENE_NAMES.includes(trimmed) || DIAL_SEPARATOR_SCENE_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+}
+
 // Ingest categories, in display/sort order
 export const INGEST_CATEGORIES = /** @type {const} */ (['backpack', 'phone', 'desktop']);
 
