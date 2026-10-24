@@ -7,10 +7,11 @@ function escapeHtml(str) {
 let cachedScenesLists = [];
 let latestSettings = null;
 
-function getExcludedSceneNames(params) {
+/** Scenes with an exclusion or dial label saved, so they can still be listed while OBS is offline */
+function getConfiguredSceneNames(params) {
 	return Object.keys(params ?? {})
-	.filter((key) => key.startsWith('exclude__') && params[key] === 'true')
-	.map((key) => key.slice('exclude__'.length));
+	.filter((key) => (key.startsWith('exclude__') && params[key] === 'true') || (key.startsWith('label__') && params[key]))
+	.map((key) => key.slice(key.indexOf('__') + 2));
 }
 
 function toArray(value) {
@@ -19,7 +20,7 @@ function toArray(value) {
 
 /**
  * Scenes in the saved custom order first, then any not in it (e.g. newly added) in their OBS order
- * - keep in sync with ScenePreviewDialAction._getFilteredScenes
+ * - keep in sync with ScenePreviewDialAction._orderScenes
  */
 function orderSceneNames(sceneNames, sceneOrder) {
 	const ordered = sceneOrder.filter((name) => sceneNames.includes(name));
@@ -29,11 +30,13 @@ function orderSceneNames(sceneNames, sceneOrder) {
 function renderSceneList(container, { resetOrder = false } = {}) {
 	const tabContainer = container.closest('.tab-container');
 	const params = getTabParams(tabContainer, latestSettings);
-	const liveScenes = mergeListsByKey(cachedScenesLists, socketIndicesOf(tabContainer), 'sceneName');
+	// OBS lists scenes bottom first - flip each list before merging so extra scenes from later servers end up last, like on the dial
+	const topFirstScenesLists = cachedScenesLists.map((scenes) => [...(scenes ?? [])].reverse());
+	const liveScenes = mergeListsByKey(topFirstScenesLists, socketIndicesOf(tabContainer), 'sceneName');
 	const sceneOrder = resetOrder ? [] : toArray(params.sceneOrder);
 	const sceneNames = liveScenes.length
-		? [...new Set(liveScenes.map((scene) => scene.sceneName))].reverse()
-		: [...new Set([...sceneOrder, ...getExcludedSceneNames(params)])];
+		? [...new Set(liveScenes.map((scene) => scene.sceneName))]
+		: [...new Set([...sceneOrder, ...getConfiguredSceneNames(params)])];
 	// The order inputs stay disabled (so aren't saved) until the scenes are manually reordered
 	const hasCustomOrder = sceneOrder.length > 0;
 
@@ -45,6 +48,7 @@ function renderSceneList(container, { resetOrder = false } = {}) {
 				<div class="sdpi-item-label" title="${name}">${name}</div>
 				<div class="sdpi-item-value" style="display: flex; gap: 8px; align-items: center;">
 					<input type="hidden" name="sceneOrder" value="${name}" ${hasCustomOrder ? '' : 'disabled'}>
+					<input type="text" name="label__${name}" placeholder="${name}" title="${$PI.localize('Scene label tooltip')}" style="flex: 1; min-width: 0;">
 					<input type="checkbox" id="${excludeId}" name="exclude__${name}" value="true">
 					<label for="${excludeId}" style="white-space: nowrap; margin: 0; display: flex; align-items: center;"><span></span>${$PI.localize('Exclude')}</label>
 					<button class="down icon-button icon-down" style="margin-left: auto;" title="${$PI.localize('Move down')}"></button>
