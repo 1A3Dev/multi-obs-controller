@@ -222,7 +222,7 @@
 		"Scene exclude tooltip": "Las escenas excluidas aquí se omiten al recorrerlas con el dial, y los botones de subir/bajar fijan el orden en que el dial las recorre",
 		"Exclude or reorder scenes on the dial": "Excluir o reordenar escenas en el dial",
 		"Scene label hint": "Las escenas con el mismo nombre de dial cambian juntas, así que dales el mismo nombre en distintos servidores para combinarlas",
-		"Scene label tooltip": "Nombre mostrado en el dial (déjalo vacío para usar el nombre de la escena). Las escenas con el mismo nombre de dial en distintos servidores cambian juntas",
+		"Scene label tooltip": "Nombre mostrado en el dial (déjalo vacío para usar el alias de ingesta asignada si se muestra, si no el nombre de la escena). Las escenas con el mismo nombre de dial en distintos servidores cambian juntas",
 		"Exclude": "Excluir",
 		"Move up": "Subir",
 		"Move down": "Bajar",

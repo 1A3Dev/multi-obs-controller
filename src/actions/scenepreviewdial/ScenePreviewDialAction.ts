@@ -212,8 +212,9 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 	}
 
 	/**
-	 * The stops on the dial, across every targeted OBS instance - scenes with the same dial label (the scene name unless
-	 * a custom one is set) switch together, so differently named scenes on each instance can be combined by labelling them the same.
+	 * The stops on the dial, across every targeted OBS instance - scenes with the same dial label switch together, so differently
+	 * named scenes on each instance can be combined by labelling them the same.
+	 * The label is the custom one if set, else the mapped ingest alias (if enabled and set), else the scene name.
 	 * Stops follow the first targeted instance's order, then any only found on later instances.
 	 * Stops whose scenes all have an offline mapped ingest are hidden (if enabled), except the live stop and the one currently picked on the dial
 	 */
@@ -224,7 +225,8 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 			if (!socketSettings) return;
 			for (const sceneName of this._orderScenes(this._scenesCache[socketIdx] ?? [], socketSettings)) {
 				const customLabel = (socketSettings[`label__${sceneName}`] as string | undefined)?.trim();
-				const label = customLabel || sceneName;
+				const alias = socketSettings.useIngestAlias === 'true' ? this._getMappedIngestAlias(sceneName, socketIdx) : undefined;
+				const label = customLabel || alias || sceneName;
 				if (!entriesByLabel.has(label)) entriesByLabel.set(label, { label, sceneNames: new Array(sockets.length).fill(undefined) });
 				const entry = entriesByLabel.get(label)!;
 				// If an instance has several scenes with the same label, the first one in its order wins
@@ -317,19 +319,12 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		}
 		const idx = this._getCurrentEntryIdx(context, entries);
 		const percent = entries.length > 1 ? Math.round((idx / (entries.length - 1)) * 100) : 100;
-		const { label, sceneNames, live, offline } = entries[idx];
-		// Uses the ingest alias of the first targeted instance that has a scene at this stop, unless that scene has a custom label
-		// (labelling another instance's scene only to combine it shouldn't hide this one's alias)
-		const aliasSocketIdx = sceneNames[displayIdx] ? displayIdx : sceneNames.findIndex(sceneName => sceneName);
-		const aliasSettings = settings[aliasSocketIdx];
-		const aliasSceneName = sceneNames[aliasSocketIdx]!;
-		const hasCustomLabel = !!(aliasSettings?.[`label__${aliasSceneName}`] as string | undefined)?.trim();
-		const alias = !hasCustomLabel && aliasSettings?.useIngestAlias === 'true' ? this._getMappedIngestAlias(aliasSceneName, aliasSocketIdx) : undefined;
+		const { label, live, offline } = entries[idx];
 		const status = [live ? '● SELECTED' : '', offline ? 'OFFLINE' : ''].filter(Boolean).join(' · ');
 		$SD.setFeedback(context, this._dimFeedback({
 			status: { value: status, color: offline ? '#e04848' : '#3ac97a' },
 			title,
-			value: alias ?? label,
+			value: label,
 			indicator: percent,
 		}, displayIdx));
 	}
