@@ -9,11 +9,16 @@ import { getIngestContextOverride, getIngests, getLastKnownIngestNames, setDynam
 import { getLastKnownScenes, getScenesLists } from './lists';
 import { ContextData, SocketSettings, ConstructorParams, DidReceiveSettingsData, KeyDownData, KeyUpData, PartiallyRequired, PersistentSettings, SendToPluginData, WillAppearData, WillDisappearData } from './types';
 
-/** Wires up the "reconnect" and "getGlobalLists" PI events shared by every action's General Configuration window, even ones (like Previous Profile) that don't otherwise talk to OBS */
+/** Wires up the "reconnect", "getConnectionStatus" and "getGlobalLists" PI events shared by every action's General Configuration window, even ones (like Previous Profile) that don't otherwise talk to OBS */
 export function registerGlobalListsHandler(action: InstanceType<typeof Action>): void {
 	action.onSendToPlugin(async ({ context, action: actionUUID, payload }: SendToPluginData<{ event: string }>) => {
 		if (payload.event === 'reconnect') {
 			sockets.forEach(socket => { socket.tryReconnect(); });
+		}
+		else if (payload.event === 'getConnectionStatus') {
+			// Keyed by server id, so the config window can match rows even after reordering them
+			const connected = Object.fromEntries(resolveServers(globalSettings).map((server, socketIdx) => [server.id, !!sockets[socketIdx]?.isConnected]));
+			$SD.sendToPropertyInspector(context, { event: 'ConnectionStatusLoaded', connected }, actionUUID);
 		}
 		else if (payload.event === 'getGlobalLists') {
 			const liveIngestsLists = sockets.map((_, socketIdx) => sortIngests([...getIngests(socketIdx).values()], socketIdx));
