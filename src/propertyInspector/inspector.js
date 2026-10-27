@@ -8,6 +8,7 @@ const NO_TARGET_ACTIONS = new Set(['irltkingestpageprev', 'irltkingestpagenext',
 const forms = new Map(); // common form and per OBS instance forms
 let globalSettings = {};
 let pendingGlobalListsResolvers = [];
+let pendingConnectionStatusResolvers = [];
 let isNoTargetAction = false;
 
 function isTargetless() {
@@ -61,6 +62,11 @@ $PI.onConnected(async (jsn) => {
 	$PI.getGlobalSettings();
 
 	$PI.onSendToPropertyInspector(action, ({ payload: sentPayload }) => {
+		if (sentPayload.event === 'ConnectionStatusLoaded') {
+			pendingConnectionStatusResolvers.forEach((resolve) => resolve(sentPayload.connected));
+			pendingConnectionStatusResolvers = [];
+			return;
+		}
 		if (sentPayload.event !== 'GlobalListsLoaded') return;
 		pendingGlobalListsResolvers.forEach((resolve) => resolve(sentPayload));
 		pendingGlobalListsResolvers = [];
@@ -341,6 +347,11 @@ window.reconnect = () => {
 window.getGlobalLists = () => new Promise((resolve) => {
 	pendingGlobalListsResolvers.push(resolve);
 	$PI.sendToPlugin({ event: 'getGlobalLists' });
+});
+
+window.getConnectionStatus = () => new Promise((resolve) => {
+	pendingConnectionStatusResolvers.push(resolve);
+	$PI.sendToPlugin({ event: 'getConnectionStatus' });
 });
 
 window.openUrl = (url) => {

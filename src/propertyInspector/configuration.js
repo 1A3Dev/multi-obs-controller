@@ -352,6 +352,7 @@ function serverRowHtml(server = {}) {
 			<button class="toggle" title="Show/hide server settings"></button>
 			<input id="${exportSelectId}" class="export-select" type="checkbox" checked>
 			<label for="${exportSelectId}" class="export-select-label" title="Include this server when exporting"><span></span></label>
+			<span class="connection-status" title="Disconnected"></span>
 			<input type="text" name="serverName" value="${name}" title="Custom display name for this OBS server, shown wherever a target OBS is picked">
 			<span class="server-row-summary"></span>
 			<div class="buttons">
@@ -427,6 +428,35 @@ function addServerRow(server = {}) {
 	if (document.querySelectorAll('.server-row').length >= MAX_SERVERS) return;
 	document.querySelector('.server-items').insertAdjacentHTML('beforeend', serverRowHtml(server));
 	refreshServerUI();
+	renderConnectionStatus();
+}
+
+const CONNECTION_STATUS_POLL_MS = 2000;
+
+// Server id -> whether the plugin is connected to it, from the last poll
+let connectionStatus = {};
+
+function renderConnectionStatus() {
+	document.querySelectorAll('.server-row').forEach((row) => {
+		const online = !!connectionStatus[row.dataset.id];
+		const dot = row.querySelector('.connection-status');
+		dot.classList.toggle('online', online);
+		dot.title = online ? 'Connected' : 'Disconnected';
+	});
+}
+
+async function pollConnectionStatus() {
+	if (!window.opener || window.opener.closed) return;
+	try {
+		connectionStatus = await window.opener.getConnectionStatus();
+		renderConnectionStatus();
+	}
+	catch (e) {
+		console.error('Error loading connection status', e);
+	}
+	finally {
+		setTimeout(pollConnectionStatus, CONNECTION_STATUS_POLL_MS);
+	}
 }
 
 function refreshServerUI() {
@@ -705,6 +735,8 @@ window.onload = () => {
 		});
 		return;
 	}).catch((e) => console.error('Error loading ingest/scene alias lists', e));
+
+	pollConnectionStatus();
 
 	formEl.addEventListener(
 		'input',
