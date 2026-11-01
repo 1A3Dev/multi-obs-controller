@@ -433,12 +433,12 @@ function serverRowHtml(server = {}) {
 	`;
 }
 
-// ws/wss default ports: obs-websocket 4455/4456, Streamlabs Desktop 59650/59651
-const DEFAULT_PORTS = ['4455', '4456', '59650', '59651'];
+// ws/wss default ports: obs-websocket 4455/4456, Streamlabs Desktop 59650
+const DEFAULT_PORTS = ['4455', '4456', '59650'];
 function defaultPort(row) {
 	const secure = row.querySelector('input[name="serverSecure"]').checked;
 	if (row.querySelector('select[name="serverSoftware"]').value !== 'streamlabs') return secure ? '4456' : '4455';
-	return secure ? '59651' : '59650';
+	return secure ? '4456' : '59650';
 }
 
 function addServerRow(server = {}) {
