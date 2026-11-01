@@ -1,6 +1,6 @@
 // Shared between the plugin (bundled by webpack) and the property inspector (loaded as plain ES modules)
 
-export const MAX_SERVERS = 10;
+export const MAX_SERVERS = 15;
 
 // Action ids (last segment of the action UUID) that only target, or never target, IRLToolkit servers
 export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestfilter', 'irltkingestfilterdial', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget'];
