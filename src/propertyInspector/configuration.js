@@ -192,8 +192,10 @@ function refreshServerSummaries() {
 		const ip = row.querySelector('input[name="serverIp"]').value.trim();
 		const port = row.querySelector('input[name="serverPort"]').value.trim();
 		const irltk = row.querySelector('input[name="serverIrltk"]').checked;
+		const streamlabs = row.querySelector('select[name="serverSoftware"]').value === 'streamlabs';
+		const streamer = getStreamerName(row);
 		const address = ip ? `${ip}${port ? `:${port}` : ''}` : 'Not configured';
-		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK` : address;
+		row.querySelector('.server-row-summary').textContent = irltk ? `${address} · IRLTK` : streamlabs ? `${address} · Streamlabs` : address;
 
 		const setCount = (selector, count) => {
 			row.querySelector(`${selector} .count`).textContent = count ? `(${count})` : '';
@@ -210,7 +212,8 @@ function serverRowHtml(server = {}) {
 	const ip = escapeHtml(server.ip || '');
 	const port = escapeHtml(server.port || '');
 	const pwd = escapeHtml(server.pwd || '');
-	const checked = server.irltk === 'true' ? 'checked' : '';
+	const isStreamlabs = server.software === 'streamlabs';
+	const checked = server.irltk === 'true' && !isStreamlabs ? 'checked' : '';
 	const secureChecked = server.secure === 'true' ? 'checked' : '';
 	const irltkId = `serverIrltk-${serverRowNonce++}`;
 	const secureId = `serverSecure-${serverRowNonce++}`;
@@ -247,14 +250,21 @@ function serverRowHtml(server = {}) {
 		</div>
 		<div class="server-row-body">
 		<div class="server-row-line">
+			<div class="field-label">Software</div>
+			<select name="serverSoftware" style="flex: 1 0 0;" title="Streaming software running on this server. Streamlabs Desktop: enable Settings → Remote Control, then use its port (default 59650, or 59651 for wss) and API token. Some actions (filters, profiles, hotkeys, transitions, virtual camera, media...) aren't available in Streamlabs Desktop">
+				<option value="obs" ${isStreamlabs ? '' : 'selected'}>OBS Studio</option>
+				<option value="streamlabs" ${isStreamlabs ? 'selected' : ''}>Streamlabs Desktop</option>
+			</select>
+		</div>
+		<div class="server-row-line">
 			<div class="field-label">IP</div>
 			<input type="text" name="serverIp" value="${ip}" pattern="\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}" title="IP address of OBS WebSocket server. Please, provide a valid IP address">
 			<div class="field-label">Port</div>
 			<input type="number" name="serverPort" value="${port}" title="Port of OBS WebSocket server">
 		</div>
 		<div class="server-row-line">
-			<div class="field-label">Password</div>
-			<input type="password" name="serverPwd" value="${pwd}" style="flex: 1 0 0;" title="Password of OBS WebSocket server, if auth enabled">
+			<div class="field-label">${isStreamlabs ? 'API Token' : 'Password'}</div>
+			<input type="password" name="serverPwd" value="${pwd}" style="flex: 1 0 0;" title="Password of OBS WebSocket server, if auth enabled - or the API token for Streamlabs Desktop (Settings → Remote Control → Show details)">
 		</div>
 		<div class="server-row-line">
 			<div class="field-label"></div>
@@ -265,7 +275,7 @@ function serverRowHtml(server = {}) {
 			<div class="field-label">Retry (s)</div>
 			<input type="number" name="serverRetryInterval" value="${retryInterval}" min="2" max="30" placeholder="10" title="How often to retry connecting while this server is disconnected, in seconds (2-30, default 10)">
 		</div>
-		<div class="server-row-line">
+		<div class="server-row-line obs-only" style="${isStreamlabs ? 'display: none;' : ''}">
 			<div class="field-label"></div>
 			<input id="${irltkId}" type="checkbox" name="serverIrltk" value="true" ${checked}>
 			<label for="${irltkId}" title="Managed by IRLToolkit - the only servers offered to IRLToolkit actions, and hidden from actions IRLToolkit itself disables"><span></span>Managed by IRLToolkit</label>
@@ -297,6 +307,14 @@ function serverRowHtml(server = {}) {
 		</div>
 	</div>
 	`;
+}
+
+// ws/wss default ports: obs-websocket 4455/4456, Streamlabs Desktop 59650/59651
+const DEFAULT_PORTS = ['4455', '4456', '59650', '59651'];
+function defaultPort(row) {
+	const secure = row.querySelector('input[name="serverSecure"]').checked;
+	if (row.querySelector('select[name="serverSoftware"]').value !== 'streamlabs') return secure ? '4456' : '4455';
+	return secure ? '59651' : '59650';
 }
 
 function addServerRow(server = {}) {
@@ -481,6 +499,27 @@ document.querySelector('.server-items').addEventListener('input', (e) => {
 			el.style.display = e.target.checked ? '' : 'none';
 		});
 	}
+	if (e.target.matches('select[name="serverSoftware"], input[name="serverSecure"]')) {
+		const row = e.target.closest('.server-row');
+		const portEl = row.querySelector('input[name="serverPort"]');
+		// Swap in the default port for the software/secure combination, unless a custom one was set
+		if (!portEl.value || DEFAULT_PORTS.includes(portEl.value)) portEl.value = defaultPort(row);
+	}
+	if (e.target.matches('select[name="serverSoftware"]')) {
+		const row = e.target.closest('.server-row');
+		const isStreamlabs = e.target.value === 'streamlabs';
+		row.querySelector('input[name="serverPwd"]').previousElementSibling.textContent = isStreamlabs ? 'API Token' : 'Password';
+		row.querySelectorAll('.obs-only').forEach((el) => {
+			el.style.display = isStreamlabs ? 'none' : '';
+		});
+		const irltkEl = row.querySelector('input[name="serverIrltk"]');
+		if (isStreamlabs && irltkEl.checked) {
+			irltkEl.checked = false;
+			row.querySelectorAll('.irltk-only').forEach((el) => {
+				el.style.display = 'none';
+			});
+		}
+	}
 	if (e.target.matches('input[name="ingestSceneIngest"], input[name="ingestSceneScene"]')) {
 		refreshIngestSceneDatalists(e.target.closest('.server-row'));
 	}
@@ -493,6 +532,7 @@ function serializeFormValue(formEl) {
 	const { serverName, serverIp, serverPort, serverPwd, ...rest } = getFormValue(formEl);
 	delete rest.serverIrltk;
 	delete rest.serverSecure;
+	delete rest.serverSoftware;
 	delete rest.serverRetryInterval;
 	delete rest.ingestPinned;
 	delete rest.ingestSceneIngest;
@@ -516,6 +556,7 @@ function serializeFormValue(formEl) {
 			pwd: pwds[i] || '',
 			irltk: row.querySelector('input[name="serverIrltk"]').checked ? 'true' : undefined,
 			secure: row.querySelector('input[name="serverSecure"]').checked ? 'true' : undefined,
+			software: row.querySelector('select[name="serverSoftware"]').value === 'streamlabs' ? 'streamlabs' : undefined,
 			retryIntervalS: row.querySelector('input[name="serverRetryInterval"]').value || undefined,
 			ingestPinned: Array.from(row.querySelectorAll('input[name="ingestPinned"]')).map((el) => el.value),
 			ingestSceneMap: Array.from(row.querySelectorAll('.ingest-scene-row')).map((r) => ({

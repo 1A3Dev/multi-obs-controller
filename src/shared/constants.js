@@ -6,6 +6,9 @@ export const MAX_SERVERS = 10;
 export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestfilter', 'irltkingestfilterdial', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget'];
 export const IRLTK_EXCLUDED_ACTIONS = ['createrecordchapter', 'refreshcapturedevice', 'savereplaybuffer', 'screenshot', 'setprofile', 'togglerecord', 'togglereplaybuffer', 'togglestream', 'togglevirtualcam'];
 
+// Action ids that never target Streamlabs Desktop servers, as its API has no equivalent (IRLTK-only actions are excluded too, since Streamlabs servers can't be IRLTK)
+export const STREAMLABS_EXCLUDED_ACTIONS = ['createrecordchapter', 'filterdial', 'filtersettingdial', 'mediainputcontrol', 'mediainputcontroldial', 'pauserecord', 'rawbatchrequest', 'rawrequest', 'refreshcapturedevice', 'sceneitemtransformdial', 'screenshot', 'setprofile', 'togglefilter', 'togglevirtualcam', 'triggerhotkey', 'triggerstudiomodetransition'];
+
 // Action ids that can target the server of the last opened ingest profile instead of fixed servers
 export const DYNAMIC_TARGET_ACTIONS = ['triggerstudiomodetransition', 'streamstatus'];
 

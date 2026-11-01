@@ -2,7 +2,7 @@ import { OBSEventTypes } from 'obs-websocket-js';
 import pRetry from 'p-retry';
 import { sockets } from '../plugin/sockets';
 import { SDUtils } from '../plugin/utils';
-import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS } from '../shared/constants';
+import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS, STREAMLABS_EXCLUDED_ACTIONS } from '../shared/constants';
 import { StateEnum } from './StateEnum';
 import { globalSettings, resolveServers, resolveTargetIds, resolveTargetIndices } from './globalSettings';
 import { getIngestContextOverride, getIngests, getLastKnownIngestNames, setDynamicIngestPositions, sortIngests } from './irltkIngests';
@@ -50,6 +50,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	private _statesColors = { active: '#517a96', intermediate: '#de902a', inactive: '#3d5b70' };
 	private _hideTargetIndicators = false;
 	private _irltkCompat: 'only' | 'exclude' | undefined;
+	private _streamlabsCompat = true;
 	private _allowDynamicTarget = false;
 	protected _showSuccess = true;
 
@@ -64,6 +65,7 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 		this._statesColors = { ...this._statesColors, ...params?.statesColors };
 		this._hideTargetIndicators = !!params?.hideTargetIndicators;
 		this._irltkCompat = IRLTK_ONLY_ACTIONS.includes(this._actionId!) ? 'only' : IRLTK_EXCLUDED_ACTIONS.includes(this._actionId!) ? 'exclude' : undefined;
+		this._streamlabsCompat = !IRLTK_ONLY_ACTIONS.includes(this._actionId!) && !STREAMLABS_EXCLUDED_ACTIONS.includes(this._actionId!);
 		this._allowDynamicTarget = DYNAMIC_TARGET_ACTIONS.includes(this._actionId!);
 
 		// Load default image
@@ -259,7 +261,11 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	}
 
 	getTargets(settings: PersistentSettings<T>): number[] {
-		return this.getCommonSettings(settings).targets;
+		const { targets } = this.getCommonSettings(settings);
+		if (this._streamlabsCompat) return targets;
+		// Streamlabs servers are left out entirely, so e.g. targeting all servers doesn't show them on the key
+		const servers = resolveServers(globalSettings);
+		return targets.filter(target => servers[target - 1]?.software !== 'streamlabs');
 	}
 
 	getSettingsArray(settings: PersistentSettings<T>): (SocketSettings<T> | null)[] {
@@ -316,8 +322,10 @@ export abstract class AbstractBaseWsAction<T extends Record<string, unknown>> ex
 	}
 
 	private _isSocketEligible(socketIdx: number): boolean {
+		const server = resolveServers(globalSettings)[socketIdx];
+		if (!this._streamlabsCompat && server?.software === 'streamlabs') return false;
 		if (!this._irltkCompat) return true;
-		const isIrltk = resolveServers(globalSettings)[socketIdx]?.irltk === 'true';
+		const isIrltk = server?.irltk === 'true';
 		return this._irltkCompat === 'only' ? isIrltk : !isIrltk;
 	}
 	// --

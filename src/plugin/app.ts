@@ -27,7 +27,7 @@ $SD.onDidReceiveGlobalSettings(({ payload }: DidReceiveGlobalSettingsData<Global
 	const servers = resolveServers(settings);
 	sockets.forEach((socket, idx) => {
 		const server = servers[idx];
-		socket.updateSettings(server?.ip ?? '', server?.port ?? '', server?.pwd, server?.secure === 'true');
+		socket.updateSettings(server?.ip ?? '', server?.port ?? '', server?.pwd, server?.secure === 'true', server?.software === 'streamlabs' ? 'streamlabs' : 'obs');
 		socket.setRetryInterval(server?.retryIntervalS);
 	});
 
