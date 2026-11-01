@@ -1,5 +1,6 @@
-import OBSWebSocket from 'obs-websocket-js';
+import OBSWebSocket, { OBSRequestTypes, OBSResponseTypes, RequestBatchOptions, RequestBatchRequest } from 'obs-websocket-js';
 import { MAX_SERVERS } from '../shared/constants';
+import { StreamlabsConnection } from './streamlabs';
 import { SDUtils } from './utils';
 
 const CONNECT_TIMEOUT_MS = 5000;
@@ -12,17 +13,21 @@ class Socket extends OBSWebSocket {
 	_port;
 	_password;
 	_secure;
+	_software: Software;
 	_isConnected = false;
 	private _pendingConnect: Promise<void> | undefined;
 	private _retryIntervalMs = DEFAULT_RETRY_INTERVAL_S * 1000;
 	private _nextAttemptAt = 0;
+	// Emulated events are OBS WS shaped, but not all of them are typed (e.g. ConnectionClosed with a plain error)
+	private _streamlabs = new StreamlabsConnection((event, data) => (this.emit as (...args: unknown[]) => boolean).call(this, event, data));
 
-	constructor(ip?: string, port?: string | number, password?: string, secure?: boolean) {
+	constructor(ip?: string, port?: string | number, password?: string, secure?: boolean, software: Software = 'obs') {
 		super();
 		this._ip = ip;
 		this._port = port;
 		this._password = password;
 		this._secure = secure;
+		this._software = software;
 
 		this.on('ConnectionOpened', () => SDUtils.logDebug(`WS initial connection opened to server at ${this._ip}:${this._port}`));
 		this.on('Hello', (data) => SDUtils.logDebug(`WS server at ${this._ip}:${this._port} sent Hello message - OBS WS Version: ${data.obsWebSocketVersion} | RPC Version: ${data.rpcVersion}`));
@@ -30,7 +35,7 @@ class Socket extends OBSWebSocket {
 		this.on('Identified', () => {
 			this._isConnected = true;
 			this._nextAttemptAt = 0;
-			const logStr = `[CONNECTED] OBS Websocket server at ${this._ip}:${this._port}`;
+			const logStr = `[CONNECTED] ${this._serverLabel} at ${this._ip}:${this._port}`;
 			SDUtils.logDebug(`Identified to WS server at ${this._ip}:${this._port}`);
 			SDUtils.log(logStr);
 		});
@@ -44,7 +49,7 @@ class Socket extends OBSWebSocket {
 			}
 
 			if (this._isConnected) {
-				const logStr = `[DISCONNECTED] OBS Websocket server at ${this._ip}:${this._port}`;
+				const logStr = `[DISCONNECTED] ${this._serverLabel} at ${this._ip}:${this._port}`;
 				SDUtils.log(logStr);
 				this._isConnected = false;
 				// @ts-expect-error Disconnected event is custom, not part of the OBS WS protocol
@@ -61,8 +66,35 @@ class Socket extends OBSWebSocket {
 	}
 
 	get _url() {
-		return `${this._secure ? 'wss' : 'ws'}://${this._ip}:${this._port}`;
+		return `${this._secure ? 'wss' : 'ws'}://${this._ip}:${this._port}${this._software === 'streamlabs' ? '/api/websocket' : ''}`;
 	}
+
+	get _serverLabel() {
+		return this._software === 'streamlabs' ? 'Streamlabs Desktop server' : 'OBS Websocket server';
+	}
+
+	// -- Streamlabs Desktop servers go through the emulation bridge instead of the OBS WS protocol
+	override async connect(url?: string, password?: string, identificationParams?: Parameters<OBSWebSocket['connect']>[2]) {
+		if (this._software !== 'streamlabs') return super.connect(url, password, identificationParams);
+		await this._streamlabs.connect(url ?? this._url, password);
+		return { obsWebSocketVersion: '', rpcVersion: 1, negotiatedRpcVersion: 1 };
+	}
+
+	override async disconnect() {
+		if (this._streamlabs.isOpen) await this._streamlabs.disconnect();
+		return super.disconnect();
+	}
+
+	override async call<Type extends keyof OBSRequestTypes>(requestType: Type, requestData?: OBSRequestTypes[Type]): Promise<OBSResponseTypes[Type]> {
+		if (this._software !== 'streamlabs') return super.call(requestType, requestData);
+		return this._streamlabs.call(requestType, requestData as Record<string, unknown>);
+	}
+
+	override async callBatch(requests: RequestBatchRequest[], options?: RequestBatchOptions) {
+		if (this._software !== 'streamlabs') return super.callBatch(requests, options);
+		return this._streamlabs.callBatch(requests, options) as ReturnType<OBSWebSocket['callBatch']>;
+	}
+	// --
 
 	/**
 	 * Connect WS, if not already connected, if valid ip/port and if the retry interval since the last failed attempt has elapsed
@@ -117,14 +149,20 @@ class Socket extends OBSWebSocket {
 	}
 
 	/**
-	 * Update ip/port/pwd/secure settings, and reconnect if needed
+	 * Update ip/port/pwd/secure/software settings, and reconnect if needed
 	 * @param {string} ip
 	 * @param {string} port
 	 * @param {string?} password
 	 * @param {boolean} secure
+	 * @param {Software} software
 	 */
-	updateSettings(ip: string, port: string | number, password?: string, secure?: boolean) {
-		if (this._ip !== ip || this._port !== port || this._password !== password || this._secure !== secure) {
+	updateSettings(ip: string, port: string | number, password?: string, secure?: boolean, software: Software = 'obs') {
+		if (this._ip !== ip || this._port !== port || this._password !== password || this._secure !== secure || this._software !== software) {
+			if (this._software !== software) {
+				// Close the connection made with the previous protocol before switching
+				this.disconnect().catch(() => { /* Error while disconnecting */ });
+				this._software = software;
+			}
 			this._ip = ip;
 			this._port = port;
 			this._password = password;
@@ -139,5 +177,7 @@ class Socket extends OBSWebSocket {
 		}
 	}
 }
+
+export type Software = 'obs' | 'streamlabs';
 
 export const sockets = new Array(MAX_SERVERS).fill(null).map(() => new Socket());

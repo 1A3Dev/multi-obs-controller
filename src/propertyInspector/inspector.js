@@ -1,6 +1,6 @@
 // / <reference path="../libs/js/property-inspector.js" />
 // / <reference path="../libs/js/utils.js" />
-import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS } from '../shared/constants.js';
+import { DYNAMIC_TARGET_ACTIONS, IRLTK_EXCLUDED_ACTIONS, IRLTK_ONLY_ACTIONS, STREAMLABS_EXCLUDED_ACTIONS } from '../shared/constants.js';
 import { keepNewestPluginData, resolveServers } from '../shared/servers.js';
 import { FormUtils, localizeUI } from './utils.js';
 
@@ -24,6 +24,7 @@ function getEligibleServers(actionName, servers) {
 	.map((server, i) => ({ index: i + 1, server }))
 	.filter(({ server }) => {
 		const isIrltk = server.irltk === 'true';
+		if (server.software === 'streamlabs' && (STREAMLABS_EXCLUDED_ACTIONS.includes(actionName) || IRLTK_ONLY_ACTIONS.includes(actionName))) return false;
 		if (IRLTK_ONLY_ACTIONS.includes(actionName)) return isIrltk;
 		if (IRLTK_EXCLUDED_ACTIONS.includes(actionName)) return !isIrltk;
 		return true;

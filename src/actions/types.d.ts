@@ -71,6 +71,7 @@ export type ServerConfig = {
 	port?: string,
 	pwd?: string,
 	secure?: 'true',
+	software?: 'streamlabs',
 	retryIntervalS?: string,
 	irltk?: 'true',
 	streamer?: string,
