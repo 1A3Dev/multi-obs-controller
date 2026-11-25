@@ -1,6 +1,6 @@
 {
 	"SDKVersion": 3,
-	"Name": "Multi OBS Controller",
+	"Name": "Multi OBS Controller [1A3Dev]",
 	"Description": "Control one or multiple OBS Studio instances at the same time. Easily keep them synchronized or manage them individually. Stream, record, set current scene, toggle source visibility, mute audio, trigger hotkeys and much more. Advanced actions support any OBS Websockets protocol request.",
 	"UUID": "uk.1a3.multiobs",
 	"Author": "the_ca11",
@@ -23,7 +23,7 @@
 			"MinimumVersion": "10"
 		}
 	],
-	"Category": "Multi OBS Controller",
+	"Category": "Multi OBS Controller [1A3Dev]",
 	"CategoryIcon": "assets/categoryIcon",
 	"Profiles": [
 		{
