@@ -2,7 +2,7 @@ import { sockets } from '../plugin/sockets';
 import { AbstractStatelessAction } from './BaseWsAction';
 import { globalSettings } from './globalSettings';
 import { getSourceFilterList } from './lists';
-import { ConstructorParams, ContextData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from './types';
+import { ConstructorParams, ContextData, DialDownData, DialRotateData, DialUpData, SocketSettings, TouchTapData } from './types';
 
 const ENABLED_COLOR = '#3ac97a';
 const DISABLED_COLOR = '#e04848';
@@ -21,13 +21,14 @@ function parseExcludedFilters(excludedFilters: string | undefined): Set<string> 
 export abstract class AbstractFilterDialAction<T extends Record<string, unknown> & FilterDialSettings> extends AbstractStatelessAction<T> {
 	private _filterCache = new Map<string, (SourceFilters | undefined)[]>();	// <context, filters per socket>
 	private _selectedFilter = new Map<string, string>();	// <context, filter name picked on the dial>
+	private _holdTimers = new Map<string, NodeJS.Timeout | undefined>();	// only used when onDialHold is defined
 
 	constructor(UUID: string, params?: Partial<ConstructorParams>) {
 		super(UUID, { hideTargetIndicators: true, ...params });
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;
-			if (!this.contexts.has(context)) return;
+			if (!this.isModeActive(context) || !this.contexts.has(context)) return;
 			const { settings, displayIdx } = this.contexts.get(context)!;
 			this._warnIfDisconnected(context, settings);
 			const filters = this._filterCache.get(context)?.[displayIdx]?.filters ?? [];
@@ -39,8 +40,33 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 			this._updateDialFeedback(context);
 		});
 
-		this.onDialUp((evtData: DialUpData<unknown>) => this._toggleSelectedFilter(evtData.context));
-		this.onTouchTap((evtData: TouchTapData<unknown>) => this._toggleSelectedFilter(evtData.context));
+		// With onDialHold defined, a short press toggles the filter and a long press runs onDialHold instead
+		this.onDialDown((evtData: DialDownData<unknown>) => {
+			const { context } = evtData;
+			if (!this.onDialHold || !this.isModeActive(context) || this._holdTimers.has(context)) return;
+			this._holdTimers.set(context, setTimeout(() => {
+				this._holdTimers.set(context, undefined);
+				this.onDialHold?.(context);
+			}, Number(globalSettings.longPressMs) || 500));
+		});
+
+		this.onDialUp((evtData: DialUpData<unknown>) => {
+			const { context } = evtData;
+			if (!this.onDialHold) {
+				if (this.isModeActive(context)) this._toggleSelectedFilter(context);
+				return;
+			}
+			// Only finishes a press this dial saw start, so a press that switched another mode in doesn't also toggle a filter
+			if (!this._holdTimers.has(context)) return;
+			const holdTimer = this._holdTimers.get(context);
+			clearTimeout(holdTimer);
+			this._holdTimers.delete(context);
+			if (holdTimer !== undefined) this._toggleSelectedFilter(context);
+		});
+
+		this.onTouchTap((evtData: TouchTapData<unknown>) => {
+			if (this.isModeActive(evtData.context)) this._toggleSelectedFilter(evtData.context);
+		});
 
 		sockets.forEach((socket, socketIdx) => {
 			socket.on('SourceFilterEnableStateChanged', ({ sourceName, filterName, filterEnabled }) => {
@@ -71,6 +97,22 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 		return this.resolveSourceName(socketIdx, socketSettings);
 	}
 
+	/** Whether this dial currently handles input and draws the dial screen, for actions that share a dial between several modes */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	protected isModeActive(context: string): boolean {
+		return true;
+	}
+
+	/** Long press of the dial. When not defined, a press toggles the filter on release regardless of how long it was held */
+	protected onDialHold?(context: string): void;
+
+	/** Set the dial layout and redraw it from the cached state */
+	protected showDial(context: string): void {
+		if (!this.contexts.has(context) || !this.isModeActive(context)) return;
+		$SD.setFeedbackLayout(context, 'actions/filterdial/layout.json');
+		this._updateDialFeedback(context);
+	}
+
 	/** Refetch the filters of contexts whose resolved source changed (e.g. a dynamic ingest position now lands on another ingest) */
 	protected async notifyTargetsChanged(socketIdx: number): Promise<void> {
 		for (const [context, { settings }] of this.contexts) {
@@ -82,10 +124,10 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 	}
 
 	override async onContextAppear(context: string, { settings }: ContextData<T>): Promise<void> {
-		$SD.setFeedbackLayout(context, 'actions/filterdial/layout.json');
+		if (this.isModeActive(context)) $SD.setFeedbackLayout(context, 'actions/filterdial/layout.json');
 		this._filterCache.set(context, new Array(sockets.length).fill(undefined));
 		await Promise.all(settings.map((_, socketIdx) => this._refreshTarget(context, socketIdx)));
-		this._updateDialFeedback(context);
+		this.showDial(context);
 	}
 
 	override async onContextSettingsUpdated(context: string, { settings }: ContextData<T>): Promise<void> {
@@ -96,6 +138,8 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 	override async onContextDisappear(context: string): Promise<void> {
 		this._filterCache.delete(context);
 		this._selectedFilter.delete(context);
+		clearTimeout(this._holdTimers.get(context));
+		this._holdTimers.delete(context);
 	}
 
 	override async onSocketConnected(socketIdx: number): Promise<void> {
@@ -171,7 +215,7 @@ export abstract class AbstractFilterDialAction<T extends Record<string, unknown>
 	}
 
 	private _updateDialFeedback(context: string): void {
-		if (!this.contexts.has(context)) return;
+		if (!this.isModeActive(context) || !this.contexts.has(context)) return;
 		const { settings, displayIdx } = this.contexts.get(context)!;
 		const title = this.resolveDisplayName(displayIdx, settings[displayIdx]);
 		if (!title) {

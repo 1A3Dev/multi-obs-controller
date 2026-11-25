@@ -83,7 +83,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 	}
 
 	override getPayloadFromSettings(socketIdx: number, settings: Record<string, never> | Partial<ActionSettings>): SingleRequestPayload<'PressInputPropertiesButton'> {
-		const ingest = resolveIngest(getIngests(socketIdx), settings, socketIdx, getThresholds(socketIdx));
+		const ingest = resolveIngest(getIngests(socketIdx), settings, socketIdx);
 		return {
 			requestType: 'PressInputPropertiesButton',
 			requestData: { inputName: ingest?.obs_source_name, propertyName: 'resetplayer' },
@@ -134,7 +134,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 		const { displayIdx, settings } = contextData;
 		const socketSettings = settings[displayIdx];
 		const ingest = socketSettings && socketSettings.bitrateGraph !== 'hide' && hasIngestTarget(socketSettings)
-			? resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx))
+			? resolveIngest(getIngests(displayIdx), socketSettings, displayIdx)
 			: undefined;
 		const samples = ingest ? getBitrateHistory(displayIdx, ingest.obs_source_name) : [];
 		if (!ingest || samples.every(value => value <= 0)) {
@@ -146,7 +146,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 	}
 
 	private _computeState(socketIdx: number, socketSettings: ActionSettings): StateEnum.Active | StateEnum.Intermediate | StateEnum.Inactive {
-		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx));
+		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx);
 		if (!ingest) return StateEnum.Inactive;
 
 		if (ingest.media_state) {
@@ -168,7 +168,7 @@ export class IrltkIngestStatusAction extends AbstractStatelessRequestAction<Acti
 			return;
 		}
 
-		const ingest = resolveIngest(getIngests(displayIdx), socketSettings, displayIdx, getThresholds(displayIdx));
+		const ingest = resolveIngest(getIngests(displayIdx), socketSettings, displayIdx);
 		const name = ingest ? getIngestDisplayName(ingest, resolveServers(globalSettings)[displayIdx]) : '';
 		const online = !!ingest && isIngestOnline(ingest, getThresholds(displayIdx));
 		const useMbps = globalSettings.bitrateUnit === 'mbps';

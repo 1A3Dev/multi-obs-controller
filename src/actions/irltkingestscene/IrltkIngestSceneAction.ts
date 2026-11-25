@@ -2,7 +2,7 @@ import { sockets } from '../../plugin/sockets';
 import { SDUtils } from '../../plugin/utils';
 import { AbstractStatefulRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
-import { getIngestContextOverride, getIngestSceneMap, getIngests, getThresholds, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngestContextOverride, getIngestSceneMap, getIngests, hasIngestTarget, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { ContextData, SingleRequestPayload, SocketSettings } from '../types';
 
 type ActionSettings = IrltkTargetSettings & { studioTarget: 'preview' | 'program' }
@@ -47,7 +47,7 @@ export class IrltkIngestSceneAction extends AbstractStatefulRequestAction<Action
 	}
 
 	private _resolveSceneName(socketIdx: number, settings: SocketSettings<ActionSettings>): string | undefined {
-		const ingest = resolveIngest(getIngests(socketIdx), settings, socketIdx, getThresholds(socketIdx));
+		const ingest = resolveIngest(getIngests(socketIdx), settings, socketIdx);
 		if (!ingest) return undefined;
 		const mapping = getIngestSceneMap(socketIdx).find(m => m.ingest === ingest.obs_source_name);
 		return mapping?.scene || undefined;

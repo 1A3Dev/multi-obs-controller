@@ -1,14 +1,14 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractFilterDialAction, FilterDialSettings } from '../AbstractFilterDialAction';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getIngestDisplayName, getIngests, getThresholds, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngestDisplayName, getIngests, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { SocketSettings } from '../types';
 
 type ActionSettings = IrltkTargetSettings & FilterDialSettings;
 
 export class IrltkIngestFilterDialAction extends AbstractFilterDialAction<ActionSettings> {
-	constructor() {
-		super('dev.theca11.multiobs.irltkingestfilterdial');
+	constructor(UUID = 'dev.theca11.multiobs.irltkingestfilterdial') {
+		super(UUID);
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));
 		onIngestPageChanged((socketIdx) => this.notifyTargetsChanged(socketIdx));
@@ -16,12 +16,12 @@ export class IrltkIngestFilterDialAction extends AbstractFilterDialAction<Action
 
 	protected resolveSourceName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {
 		if (!socketSettings) return undefined;
-		return resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx))?.obs_source_name;
+		return resolveIngest(getIngests(socketIdx), socketSettings, socketIdx)?.obs_source_name;
 	}
 
 	protected override resolveDisplayName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {
 		if (!socketSettings) return undefined;
-		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx));
+		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx);
 		return ingest && getIngestDisplayName(ingest, resolveServers(globalSettings)[socketIdx]);
 	}
 

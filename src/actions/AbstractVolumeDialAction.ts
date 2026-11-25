@@ -30,7 +30,7 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 
 		this.onDialRotate((evtData: DialRotateData<unknown>) => {
 			const { context, payload } = evtData;
-			if (!this.contexts.has(context) || !this._volumeCache.has(context)) return;
+			if (!this.isModeActive(context) || !this.contexts.has(context) || !this._volumeCache.has(context)) return;
 			const { settings, displayIdx } = this.contexts.get(context)!;
 			const cached = this._volumeCache.get(context)!;
 			this._warnIfDisconnected(context, settings);
@@ -46,20 +46,22 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 			this._rotateTimers.set(context, setTimeout(() => this._commitVolume(context), ROTATE_SETTLE_MS));
 		});
 
-		// Short press toggles mute, long press resets volume to 0 dB
+		// Short press toggles mute, long press runs onDialHold (resets volume to 0 dB by default)
 		this.onDialDown((evtData: DialDownData<unknown>) => {
 			const { context } = evtData;
-			if (this._holdTimers.has(context)) return;
+			if (!this.isModeActive(context) || this._holdTimers.has(context)) return;
 			this._holdTimers.set(context, setTimeout(() => {
 				this._holdTimers.set(context, undefined);
-				this._resetVolume(context);
+				this.onDialHold(context);
 			}, Number(globalSettings.longPressMs) || 500));
 		});
 
+		// Only finishes a press this dial saw start, so a press that switched another mode in doesn't also toggle mute
 		this.onDialUp((evtData: DialUpData<unknown>) => {
 			const { context } = evtData;
+			if (!this._holdTimers.has(context)) return;
 			const holdTimer = this._holdTimers.get(context);
-			const wasLongPress = this._holdTimers.has(context) && holdTimer === undefined;
+			const wasLongPress = holdTimer === undefined;
 			clearTimeout(holdTimer);
 			this._holdTimers.delete(context);
 			if (!wasLongPress) this._toggleMute(context);
@@ -67,6 +69,7 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 
 		this.onTouchTap((evtData: TouchTapData<unknown>) => {
 			const { context, payload } = evtData;
+			if (!this.isModeActive(context)) return;
 			if (payload.hold) this._resetVolume(context);
 			else this._toggleMute(context);
 		});
@@ -122,6 +125,26 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 
 	protected resolveDisplayName(socketIdx: number, socketSettings: SocketSettings<T> | null | undefined): string | undefined {
 		return this.resolveInputName(socketIdx, socketSettings);
+	}
+
+	/** Whether this dial currently handles input and draws the dial screen, for actions that share a dial between several modes */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	protected isModeActive(context: string): boolean {
+		return true;
+	}
+
+	/** Long press of the dial */
+	protected onDialHold(context: string): void {
+		this._resetVolume(context);
+	}
+
+	/** Set the dial layout and redraw it from the cached state */
+	protected showDial(context: string): void {
+		const contextData = this.contexts.get(context);
+		if (!contextData || !this.isModeActive(context)) return;
+		const { settings, displayIdx } = contextData;
+		$SD.setFeedbackLayout(context, 'actions/dialLayout/layout.json');
+		this._updateDialFeedback(context, this.resolveDisplayName(displayIdx, settings[displayIdx]), this._volumeCache.get(context)?.[displayIdx], this._getEffectiveMute(context, displayIdx), displayIdx, settings[displayIdx]);
 	}
 
 	protected async notifyTargetsChanged(onlySocketIdx?: number): Promise<void> {
@@ -221,8 +244,8 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 		}));
 	}
 
-	override async onContextAppear(context: string, { settings, displayIdx }: ContextData<T>): Promise<void> {
-		$SD.setFeedbackLayout(context, 'actions/dialLayout/layout.json');
+	override async onContextAppear(context: string, { settings }: ContextData<T>): Promise<void> {
+		if (this.isModeActive(context)) $SD.setFeedbackLayout(context, 'actions/dialLayout/layout.json');
 
 		const resolvedNames = settings.map((socketSettings, socketIdx) => this.resolveInputName(socketIdx, socketSettings));
 		this._lastResolvedNames.set(context, [...resolvedNames]);
@@ -232,7 +255,7 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 
 		await Promise.all(resolvedNames.map((inputName, socketIdx) => inputName ? this._refreshTarget(context, socketIdx, inputName) : Promise.resolve()));
 
-		this._updateDialFeedback(context, this.resolveDisplayName(displayIdx, settings[displayIdx]), this._volumeCache.get(context)?.[displayIdx], this._getEffectiveMute(context, displayIdx), displayIdx, settings[displayIdx]);
+		this.showDial(context);
 	}
 
 	override async onContextDisappear(context: string): Promise<void> {
@@ -291,6 +314,7 @@ export abstract class AbstractVolumeDialAction<T extends Record<string, unknown>
 	}
 
 	private _updateDialFeedback(context: string, name: string | undefined, db: number | undefined, muted: boolean | undefined, socketIdx: number, socketSettings: SocketSettings<T> | null | undefined) {
+		if (!this.isModeActive(context)) return;
 		if (!name) {
 			$SD.setFeedback(context, this._dimFeedback({ status: '', title: 'N/A', value: '0.0 dB', indicator: { value: 0, bar_fill_c: INDICATOR_COLOR } }, socketIdx));
 			return;

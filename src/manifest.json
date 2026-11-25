@@ -648,6 +648,27 @@
 			}
 		},
 		{
+			"UUID": "dev.theca11.multiobs.irltkingestdial",
+			"Icon": "assets/actions/irltkingestdial/icon",
+			"Name": "IRLToolkit Ingest Dial",
+			"Tooltip": "Volume and filters of an IRLToolkit ingest on one Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list. Hold the dial to switch between volume and filters; it starts on volume every time it appears (Cloud OBS only)",
+			"Controllers": ["Encoder"],
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestdial/key_on"
+				}
+			],
+			"Encoder": {
+				"Icon": "assets/actions/irltkingestdial/icon",
+				"layout": "actions/dialLayout/layout.json",
+				"TriggerDescription": {
+					"Rotate": "Adjust volume / select filter",
+					"Push": "Toggle mute / enable-disable filter (hold: switch volume/filters)",
+					"Touch": "Toggle mute / enable-disable filter (volume hold: reset to 0 dB)"
+				}
+			}
+		},
+		{
 			"UUID": "dev.theca11.multiobs.irltkingestpageprev",
 			"Icon": "assets/actions/irltkingestpageprev/icon",
 			"Name": "Ingest Page Previous",
@@ -682,6 +703,18 @@
 			],
 			"DisableAutomaticStates": true,
             "VisibleInActionsList": false
+		},
+		{
+			"UUID": "dev.theca11.multiobs.irltkingestpagerefresh",
+			"Icon": "assets/actions/irltkingestpagerefresh/icon",
+			"Name": "Ingest Page Refresh",
+			"Tooltip": "Re-sort the shared IRLToolkit ingest page, dropping offline ingests. Ingests otherwise keep their position until the page is refreshed or reopened (Cloud OBS only)",
+			"States": [
+				{
+					"Image": "assets/actions/irltkingestpagerefresh/key_on"
+				}
+			],
+			"DisableAutomaticStates": true
 		},
 		{
 			"UUID": "dev.theca11.multiobs.irltkingestpagenumber",
