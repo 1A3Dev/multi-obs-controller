@@ -71,8 +71,16 @@ function applyMoves(container, moves) {
 	const rowsByScene = new Map(rows.map((row) => [row.dataset.scene, row]));
 	const order = orderDialScenes(sceneNames, moves);
 	// Rows not in the OBS list (only while offline) stay at the end
-	[...order, ...rows.map((row) => row.dataset.scene).filter((sceneName) => !order.includes(sceneName))]
-	.forEach((sceneName) => container.appendChild(rowsByScene.get(sceneName)));
+	const newRows = [...order, ...rows.map((row) => row.dataset.scene).filter((sceneName) => !order.includes(sceneName))]
+	.map((sceneName) => rowsByScene.get(sceneName));
+	// Only move rows that are out of place - detaching every row makes the page lose its scroll position
+	const scroller = document.scrollingElement;
+	const { scrollTop } = scroller;
+	newRows.forEach((row, idx) => {
+		const current = container.children[idx];
+		if (current !== row) container.insertBefore(row, current);
+	});
+	scroller.scrollTop = scrollTop;
 	rows.forEach((row) => setRowMove(row, moves.get(row.dataset.scene)));
 	// Any old full scene order is replaced by the per-scene moves
 	container.parentElement.querySelectorAll('input[name="sceneOrder"]').forEach((el) => el.remove());
