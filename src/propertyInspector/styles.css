@@ -179,6 +179,10 @@ details[open] summary > span:before {
 	background-image: url(../assets/tablerIcons/arrow-down.svg);
 }
 
+.icon-revert {
+	background-image: url(../assets/tablerIcons/arrow-back-up.svg);
+}
+
 /*
 * COLOR PICKER
 */
