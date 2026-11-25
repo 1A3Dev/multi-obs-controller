@@ -14,8 +14,8 @@ function renderFilterOptions(el) {
 	el.replaceChildren(...options);
 }
 
-$PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingestfilter', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
-	const { event, ingestsLists, pagingActive, filterList } = payload;
+$PI.onSendToPropertyInspector('dev.theca11.multiobs.irltkingestfilter', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
+	const { event, ingestsLists, filterList } = payload;
 
 	if (event === 'IngestListLoaded') {
 		document.querySelectorAll('.ingest-static-field > datalist').forEach((el) => {
@@ -27,10 +27,6 @@ $PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingestfilter', replayOnTarge
 				return option;
 			});
 			el.replaceChildren(...options);
-		});
-
-		document.querySelectorAll('.online-only-field').forEach((el) => {
-			el.style.display = pagingActive ? 'none' : '';
 		});
 	}
 	else if (event === 'FilterListLoaded') {

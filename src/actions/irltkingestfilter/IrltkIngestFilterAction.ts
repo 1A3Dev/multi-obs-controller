@@ -1,7 +1,7 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractStatefulRequestAction } from '../BaseRequestAction';
 import { StateEnum } from '../StateEnum';
-import { getIngests, getThresholds, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngests, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { getSourceFilterList } from '../lists';
 import { ContextData, SendToPluginData, SingleRequestPayload, SocketSettings } from '../types';
 
@@ -9,7 +9,7 @@ type ActionSettings = IrltkTargetSettings & { filterName: string }
 
 function resolveSourceName(socketIdx: number, settings: Partial<ActionSettings> | null | undefined): string | undefined {
 	if (!settings) return undefined;
-	return resolveIngest(getIngests(socketIdx), settings, socketIdx, getThresholds(socketIdx))?.obs_source_name;
+	return resolveIngest(getIngests(socketIdx), settings, socketIdx)?.obs_source_name;
 }
 
 export class IrltkIngestFilterAction extends AbstractStatefulRequestAction<ActionSettings, 'SourceFilterEnableStateChanged'> {

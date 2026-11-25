@@ -1,14 +1,14 @@
 import { sockets } from '../../plugin/sockets';
 import { AbstractVolumeDialAction } from '../AbstractVolumeDialAction';
 import { globalSettings, resolveServers } from '../globalSettings';
-import { getIngestDisplayName, getIngests, getThresholds, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
+import { getIngestDisplayName, getIngests, IrltkTargetSettings, isIngestPagingActive, onIngestPageChanged, onIngestsUpdated, resolveIngest, sortIngests } from '../irltkIngests';
 import { SocketSettings } from '../types';
 
 type ActionSettings = IrltkTargetSettings & { stepDb: string, maxDb: string }
 
 export class IrltkIngestVolumeAction extends AbstractVolumeDialAction<ActionSettings> {
-	constructor() {
-		super('uk.1a3.multiobs.irltkingestvolume');
+	constructor(UUID = 'dev.theca11.multiobs.irltkingestvolume') {
+		super(UUID);
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));
 		onIngestPageChanged((socketIdx) => this.notifyTargetsChanged(socketIdx));
@@ -16,12 +16,12 @@ export class IrltkIngestVolumeAction extends AbstractVolumeDialAction<ActionSett
 
 	protected resolveInputName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {
 		if (!socketSettings) return undefined;
-		return resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx))?.obs_source_name;
+		return resolveIngest(getIngests(socketIdx), socketSettings, socketIdx)?.obs_source_name;
 	}
 
 	protected override resolveDisplayName(socketIdx: number, socketSettings: SocketSettings<ActionSettings> | null | undefined): string | undefined {
 		if (!socketSettings) return undefined;
-		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx, getThresholds(socketIdx));
+		const ingest = resolveIngest(getIngests(socketIdx), socketSettings, socketIdx);
 		return ingest && getIngestDisplayName(ingest, resolveServers(globalSettings)[socketIdx]);
 	}
 

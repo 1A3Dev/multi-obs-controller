@@ -3,7 +3,7 @@
 export const MAX_SERVERS = 15;
 
 // Action ids (last segment of the action UUID) that only target, or never target, IRLToolkit servers
-export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestfilter', 'irltkingestfilterdial', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingeststudiotarget'];
+export const IRLTK_ONLY_ACTIONS = ['irltkingeststatus', 'irltkingestvolume', 'irltkingestscene', 'irltkingestfilter', 'irltkingestfilterdial', 'irltkingestdial', 'irltkingestpageprev', 'irltkingestpagenext', 'irltkingestpagenumber', 'irltkingestpagerefresh', 'irltkingeststudiotarget'];
 export const IRLTK_EXCLUDED_ACTIONS = ['createrecordchapter', 'refreshcapturedevice', 'savereplaybuffer', 'screenshot', 'setprofile', 'togglerecord', 'togglereplaybuffer', 'togglestream', 'togglevirtualcam'];
 
 // Action ids that never target Streamlabs Desktop servers, as its API has no equivalent (IRLTK-only actions are excluded too, since Streamlabs servers can't be IRLTK)

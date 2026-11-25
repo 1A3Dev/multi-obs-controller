@@ -28,10 +28,10 @@ export type IrltkStatusUpdate = {
 }
 
 export type IrltkTargetSettings = {
+	/** Dynamic positions only resolve on the ingest page (opened via Open Ingest Profile) */
 	ingestTargetMode?: 'dynamic';
 	ingestSourceName?: string;
 	ingestIndex?: string;
-	ingestOnlineOnly?: 'true';
 }
 
 export type IngestThresholds = { low: number, offline: number };
@@ -59,6 +59,15 @@ export const BITRATE_HISTORY_LENGTH = 30;
 const bitrateHistory: Map<string, number[]>[] = new Array(sockets.length).fill(null).map(() => new Map());
 
 const currentPage: number[] = new Array(sockets.length).fill(1);
+
+/**
+ * Fixed slot layout of the ingest page, per socket: the OBS source name shown at each position. Ingests keep
+ * their slot (shown offline if they go offline or drop out of IRLToolkit's list) and newly listed ingests are
+ * added at the end, so nothing on the page moves until it's re-sorted by refreshIngestPage (or reopening the page)
+ */
+let pageSlots: string[][] = sockets.map(() => []);
+/** Last known data of every ingest in pageSlots, to keep showing ingests that dropped out of IRLToolkit's list */
+let pageSlotIngests: Map<string, IrltkIngest>[] = sockets.map(() => new Map());
 const pageListeners = new Set<(socketIdx: number) => void>();
 
 /** Dynamic-position ingest buttons currently on screen: <context, ingestIndex per socket (0 if none)>. The page size follows the highest one, so it matches the open profile's layout */
@@ -70,6 +79,9 @@ const studioTargetListeners = new Set<() => void>();
 
 export function setIngestContextOverride(override: IngestContextOverride): void {
 	ingestContextOverride = override;
+	// Opening the ingest page starts again from the sorted order
+	pageSlots = sockets.map((_, socketIdx) => getPageListedIngests(socketIdx));
+	pageSlotIngests = sockets.map((_, socketIdx) => new Map(pageSlots[socketIdx].map(name => [name, ingestsBySource[socketIdx].get(name)!])));
 	studioTargetListeners.forEach(fn => fn());
 }
 
@@ -97,6 +109,43 @@ export function isIngestPagingActive(): boolean {
 
 function shouldIncludeOfflineIngests(): boolean {
 	return !!ingestContextOverride.includeOffline;
+}
+
+/** Source names of the ingests the ingest page lists, in sorted order */
+function getPageListedIngests(socketIdx: number): string[] {
+	let ingests = [...ingestsBySource[socketIdx].values()];
+	if (!shouldIncludeOfflineIngests()) ingests = ingests.filter(i => isIngestOnlineWithGrace(i, thresholds[socketIdx], socketIdx));
+	return sortIngestsOnlineFirst(ingests, thresholds[socketIdx], socketIdx).map(i => i.obs_source_name);
+}
+
+/** Add newly listed ingests at the end of the page, and keep the last known data of the ones already on it */
+function updatePageSlots(socketIdx: number): void {
+	const slots = pageSlots[socketIdx];
+	const placed = new Set(slots);
+	getPageListedIngests(socketIdx).forEach(name => {
+		if (!placed.has(name)) slots.push(name);
+	});
+	slots.forEach(name => {
+		const ingest = ingestsBySource[socketIdx].get(name);
+		if (ingest) pageSlotIngests[socketIdx].set(name, ingest);
+	});
+}
+
+/** Re-sort the ingest page: offline ingests are dropped (unless the page includes them) and the rest re-ordered */
+export function refreshIngestPage(socketIdx: number): void {
+	pageSlots[socketIdx] = getPageListedIngests(socketIdx);
+	pageSlotIngests[socketIdx] = new Map(pageSlots[socketIdx].map(name => [name, ingestsBySource[socketIdx].get(name)!]));
+	currentPage[socketIdx] = Math.min(currentPage[socketIdx], getIngestPageCount(socketIdx));
+	updateListeners.forEach(fn => fn(socketIdx));
+	pageListeners.forEach(fn => fn(socketIdx));
+	refreshListeners.forEach(fn => fn(socketIdx));
+}
+
+const refreshListeners = new Set<(socketIdx: number) => void>();
+
+/** Called after refreshIngestPage re-sorts a socket's ingest page (not on page changes or ingest updates) */
+export function onIngestPageRefreshed(callback: (socketIdx: number) => void): void {
+	refreshListeners.add(callback);
 }
 
 sockets.forEach((socket, socketIdx) => {
@@ -138,6 +187,8 @@ sockets.forEach((socket, socketIdx) => {
 			if (!merged.has(name)) history.delete(name);
 		});
 
+		updatePageSlots(socketIdx);
+
 		const maxPage = getIngestPageCount(socketIdx);
 		const pageChanged = currentPage[socketIdx] > maxPage;
 		if (pageChanged) currentPage[socketIdx] = maxPage;
@@ -152,6 +203,8 @@ sockets.forEach((socket, socketIdx) => {
 		lastSeenIngest[socketIdx] = new Map();
 		bitrateHistory[socketIdx] = new Map();
 		outputStatusBySocket[socketIdx] = undefined;
+		pageSlots[socketIdx] = [];
+		pageSlotIngests[socketIdx] = new Map();
 		updateListeners.forEach(fn => fn(socketIdx));
 
 		if (currentPage[socketIdx] !== 1) {
@@ -191,9 +244,7 @@ export function setDynamicIngestPositions(context: string, settings?: (Partial<I
 }
 
 export function getIngestPageCount(socketIdx: number): number {
-	const ingests = [...getIngests(socketIdx).values()];
-	const count = shouldIncludeOfflineIngests() ? ingests.length : ingests.filter(i => isIngestOnlineWithGrace(i, getThresholds(socketIdx), socketIdx)).length;
-	return Math.max(1, Math.ceil(count / getIngestPageSize(socketIdx)));
+	return Math.max(1, Math.ceil(pageSlots[socketIdx].length / getIngestPageSize(socketIdx)));
 }
 
 export function setIngestPage(socketIdx: number, page: number): void {
@@ -287,21 +338,15 @@ export function sortIngests(ingests: IrltkIngest[], socketIdx?: number): IrltkIn
 	});
 }
 
-export function resolveIngest(ingestsBySourceMap: Map<string, IrltkIngest>, settings: IrltkTargetSettings, socketIdx: number, ingestThresholds?: IngestThresholds): IrltkIngest | undefined {
+export function resolveIngest(ingestsBySourceMap: Map<string, IrltkIngest>, settings: IrltkTargetSettings, socketIdx: number): IrltkIngest | undefined {
 	if (settings.ingestTargetMode === 'dynamic') {
-		let pos = Number(settings.ingestIndex);
-		if (!Number.isInteger(pos) || pos < 1) return undefined;
-		let ingests = [...ingestsBySourceMap.values()];
-		const paging = isIngestPagingActive();
-		const includeOfflineOverride = paging && shouldIncludeOfflineIngests();
-		if ((settings.ingestOnlineOnly === 'true' || paging) && ingestThresholds && !includeOfflineOverride) {
-			ingests = ingests.filter(i => isIngestOnlineWithGrace(i, ingestThresholds, socketIdx));
-		}
-		if (paging) {
-			pos += (getIngestPage(socketIdx) - 1) * getIngestPageSize(socketIdx);
-		}
-		const sorted = ingestThresholds ? sortIngestsOnlineFirst(ingests, ingestThresholds, socketIdx) : sortIngests(ingests, socketIdx);
-		return sorted[pos - 1];
+		const pos = Number(settings.ingestIndex);
+		if (!isIngestPagingActive() || !Number.isInteger(pos) || pos < 1) return undefined;
+		const name = pageSlots[socketIdx][pos - 1 + (getIngestPage(socketIdx) - 1) * getIngestPageSize(socketIdx)];
+		if (name === undefined) return undefined;
+		// An ingest that dropped out of IRLToolkit's list keeps its slot, shown as offline
+		const last = pageSlotIngests[socketIdx].get(name);
+		return ingestsBySourceMap.get(name) ?? (last && { ...last, router_bitrate: 0, media_state: undefined });
 	}
 	return settings.ingestSourceName ? ingestsBySourceMap.get(settings.ingestSourceName) : undefined;
 }

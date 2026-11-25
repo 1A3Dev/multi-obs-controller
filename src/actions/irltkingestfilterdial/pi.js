@@ -1,7 +1,7 @@
 import { mergeListsByKey, replayOnTargetChange, socketIndicesOf } from '../../propertyInspector/utils.js';
 
-$PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingestfilterdial', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
-	const { event, ingestsLists, pagingActive } = payload;
+$PI.onSendToPropertyInspector('dev.theca11.multiobs.irltkingestfilterdial', replayOnTargetChange(['IngestListLoaded'], ({ payload }) => {
+	const { event, ingestsLists } = payload;
 
 	if (event === 'IngestListLoaded') {
 		document.querySelectorAll('datalist').forEach((el) => {
@@ -13,10 +13,6 @@ $PI.onSendToPropertyInspector('uk.1a3.multiobs.irltkingestfilterdial', replayOnT
 				return option;
 			});
 			el.replaceChildren(...options);
-		});
-
-		document.querySelectorAll('.online-only-field').forEach((el) => {
-			el.style.display = pagingActive ? 'none' : '';
 		});
 	}
 }));

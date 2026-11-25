@@ -1,5 +1,5 @@
 export const fields = `
-<div type="radio" class="sdpi-item" title="${$PI.localize('How to pick the target ingest: a fixed one, or by its position in a sorted list (by category, then pinned ingests first within their category as set for this server in General Configuration, then alphabetical) that follows along as ingests come and go')}">
+<div type="radio" class="sdpi-item" title="${$PI.localize('How to pick the target ingest: a fixed one, or by its position on the ingest page (opened via an Open Ingest Profile button)')}">
 	<div class="sdpi-item-label" data-i18n>Target Mode</div>
 	<div class="sdpi-item-value">
 		<input id="ingestModeStatic" type="radio" name="ingestTargetMode" value="" checked>
@@ -13,15 +13,9 @@ export const fields = `
 	<input class="sdpi-item-value" type="text" name="ingestSourceName" list="ingestList">
 	<datalist id="ingestList"></datalist>
 </div>
-<div class="sdpi-item ingest-dynamic-field" title="${$PI.localize('1-based position of the ingest in the sorted list (by category, then pinned ingests first within their category as set for this server, then alphabetical)')}">
+<div class="sdpi-item ingest-dynamic-field" title="${$PI.localize('1-based position on the ingest page (opened via an Open Ingest Profile button), sorted by category, then pinned ingests first within their category as set for this server, then alphabetical. Ingests keep their position until the page is refreshed or reopened')}">
 	<div class="sdpi-item-label" data-i18n>Ingest Position</div>
-	<div class="sdpi-item-value" style="display: flex; gap: 8px; align-items: center;">
-		<input type="number" name="ingestIndex" min="1" step="1" placeholder="1" style="flex: 1 0 0; min-width: 0;">
-		<span class="online-only-field" style="display: flex; align-items: center;">
-			<input type="checkbox" id="ingestOnlineOnly" name="ingestOnlineOnly" value="true">
-			<label for="ingestOnlineOnly" style="white-space: nowrap; margin: 0; display: flex; align-items: center;" title="${$PI.localize('Skip offline ingests, so this position always lands on a currently live one')}"><span></span>${$PI.localize('Online Only')}</label>
-		</span>
-	</div>
+	<input class="sdpi-item-value" type="number" name="ingestIndex" min="1" step="1" placeholder="1">
 </div>
 <div class="sdpi-item">
 	<div class="sdpi-item-label" data-i18n>Step (dB)</div>
