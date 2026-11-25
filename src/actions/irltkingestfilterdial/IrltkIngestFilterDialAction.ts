@@ -7,7 +7,7 @@ import { SocketSettings } from '../types';
 type ActionSettings = IrltkTargetSettings & FilterDialSettings;
 
 export class IrltkIngestFilterDialAction extends AbstractFilterDialAction<ActionSettings> {
-	constructor(UUID = 'dev.theca11.multiobs.irltkingestfilterdial') {
+	constructor(UUID = 'uk.1a3.multiobs.irltkingestfilterdial') {
 		super(UUID);
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));

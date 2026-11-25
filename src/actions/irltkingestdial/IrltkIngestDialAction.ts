@@ -10,7 +10,7 @@ import { IrltkIngestVolumeAction } from '../irltkingestvolume/IrltkIngestVolumeA
  * Both modes are the existing dial implementations registered under the same UUID: each receives every event of
  * the action, and only the one matching the context's current mode handles input and draws the dial
  */
-const DIAL_UUID = 'dev.theca11.multiobs.irltkingestdial';
+const DIAL_UUID = 'uk.1a3.multiobs.irltkingestdial';
 
 type DialMode = 'volume' | 'filters';
 const DIAL_MODES: DialMode[] = ['volume', 'filters'];

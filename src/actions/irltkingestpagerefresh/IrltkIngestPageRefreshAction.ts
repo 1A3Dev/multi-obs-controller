@@ -9,7 +9,7 @@ type ActionSettings = Record<string, never>
 /** Re-sort the shared IRLToolkit ingest page, which otherwise keeps every ingest in place until it's reopened */
 export class IrltkIngestPageRefreshAction extends AbstractStatelessAction<ActionSettings> {
 	constructor() {
-		super('dev.theca11.multiobs.irltkingestpagerefresh');
+		super('uk.1a3.multiobs.irltkingestpagerefresh');
 
 		this.onSinglePress(({ context, payload }: KeyDownData<PersistentSettings<ActionSettings>>) => {
 			const { settings, isInMultiAction } = payload;

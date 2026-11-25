@@ -7,7 +7,7 @@ import { SocketSettings } from '../types';
 type ActionSettings = IrltkTargetSettings & { stepDb: string, maxDb: string }
 
 export class IrltkIngestVolumeAction extends AbstractVolumeDialAction<ActionSettings> {
-	constructor(UUID = 'dev.theca11.multiobs.irltkingestvolume') {
+	constructor(UUID = 'uk.1a3.multiobs.irltkingestvolume') {
 		super(UUID);
 
 		onIngestsUpdated((socketIdx) => this.notifyTargetsChanged(socketIdx));

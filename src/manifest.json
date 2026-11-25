@@ -2,7 +2,7 @@
 	"SDKVersion": 3,
 	"Name": "Multi OBS Controller",
 	"Description": "Control one or multiple OBS Studio instances at the same time. Easily keep them synchronized or manage them individually. Stream, record, set current scene, toggle source visibility, mute audio, trigger hotkeys and much more. Advanced actions support any OBS Websockets protocol request.",
-	"UUID": "dev.theca11.multiobs",
+	"UUID": "uk.1a3.multiobs",
 	"Author": "the_ca11",
 	"Version": "0.8.3",
 	"URL": "https://theca11.github.io/multi-obs-controller",
@@ -50,7 +50,7 @@
 	],
 	"Actions": [
 		{
-			"UUID": "dev.theca11.multiobs.togglestream",
+			"UUID": "uk.1a3.multiobs.togglestream",
 			"Icon": "assets/actions/togglestream/icon",
 			"Name": "Stream",
 			"Tooltip": "Start/stop streaming",
@@ -67,7 +67,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglerecord",
+			"UUID": "uk.1a3.multiobs.togglerecord",
 			"Icon": "assets/actions/togglerecord/icon",
 			"Name": "Record",
 			"Tooltip": "Start/stop recording",
@@ -84,7 +84,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.pauserecord",
+			"UUID": "uk.1a3.multiobs.pauserecord",
 			"Icon": "assets/actions/pauserecord/icon",
 			"Name": "Record Pause",
 			"Tooltip": "Pause/resume recording",
@@ -101,7 +101,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.createrecordchapter",
+			"UUID": "uk.1a3.multiobs.createrecordchapter",
 			"Icon": "assets/actions/createrecordchapter/icon",
 			"Name": "Chapter Marker",
 			"Tooltip": "Add a chapter marker to an active recording",
@@ -116,7 +116,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglevirtualcam",
+			"UUID": "uk.1a3.multiobs.togglevirtualcam",
 			"Icon": "assets/actions/togglevirtualcam/icon",
 			"Name": "Virtual Camera",
 			"Tooltip": "Start/stop virtual camera",
@@ -133,7 +133,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglereplaybuffer",
+			"UUID": "uk.1a3.multiobs.togglereplaybuffer",
 			"Icon": "assets/actions/togglereplaybuffer/icon",
 			"Name": "Replay Buffer",
 			"Tooltip": "Start/stop replay buffer",
@@ -150,7 +150,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.savereplaybuffer",
+			"UUID": "uk.1a3.multiobs.savereplaybuffer",
 			"Icon": "assets/actions/savereplaybuffer/icon",
 			"Name": "Save Replay Buffer",
 			"Tooltip": "Save currently active replay buffer",
@@ -165,7 +165,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.setscene",
+			"UUID": "uk.1a3.multiobs.setscene",
 			"Icon": "assets/actions/setscene/icon",
 			"Name": "Scene",
 			"Tooltip": "Set current scene",
@@ -180,7 +180,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglesource",
+			"UUID": "uk.1a3.multiobs.togglesource",
 			"Icon": "assets/actions/togglesource/icon",
 			"Name": "Source Visibility",
 			"Tooltip": "Show/hide source",
@@ -197,7 +197,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.setcollection",
+			"UUID": "uk.1a3.multiobs.setcollection",
 			"Icon": "assets/actions/setcollection/icon",
 			"Name": "Scene Collection",
 			"Tooltip": "Set current scene collection",
@@ -212,7 +212,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.setprofile",
+			"UUID": "uk.1a3.multiobs.setprofile",
 			"Icon": "assets/actions/setprofile/icon",
 			"Name": "Profile",
 			"Tooltip": "Set current profile",
@@ -227,7 +227,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.toggleinputmute",
+			"UUID": "uk.1a3.multiobs.toggleinputmute",
 			"Icon": "assets/actions/toggleinputmute/icon",
 			"Name": "Audio Mute",
 			"Tooltip": "Mute/unmute audio source",
@@ -244,7 +244,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.setinputvolume",
+			"UUID": "uk.1a3.multiobs.setinputvolume",
 			"Icon": "assets/actions/setinputvolume/icon",
 			"Name": "Input Volume",
 			"Tooltip": "Adjust an input source's volume with a Stream Deck + dial",
@@ -265,7 +265,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.mediainputcontrol",
+			"UUID": "uk.1a3.multiobs.mediainputcontrol",
 			"Icon": "assets/actions/mediainputcontrol/icon",
 			"Name": "Media Source Control",
 			"Tooltip": "Control media source playback",
@@ -290,7 +290,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.mediainputcontroldial",
+			"UUID": "uk.1a3.multiobs.mediainputcontroldial",
 			"Icon": "assets/actions/mediainputcontroldial/icon",
 			"Name": "Media Source Control (Dial)",
 			"Tooltip": "Seek a media source's playback position with a Stream Deck + dial, push or tap to play/pause/stop/restart (configurable)",
@@ -311,7 +311,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglefilter",
+			"UUID": "uk.1a3.multiobs.togglefilter",
 			"Icon": "assets/actions/togglefilter/icon",
 			"Name": "Filter",
 			"Tooltip": "Enable/disable scene/source filter",
@@ -328,7 +328,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.filtersettingdial",
+			"UUID": "uk.1a3.multiobs.filtersettingdial",
 			"Icon": "assets/actions/filtersettingdial/icon",
 			"Name": "Filter Setting",
 			"Tooltip": "Adjust a numeric source filter setting with a Stream Deck + dial",
@@ -349,7 +349,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.filterdial",
+			"UUID": "uk.1a3.multiobs.filterdial",
 			"Icon": "assets/actions/filterdial/icon",
 			"Name": "Filter Dial",
 			"Tooltip": "Browse every filter of a scene/source with a Stream Deck + dial, and push or tap the screen to enable/disable the selected one",
@@ -370,7 +370,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.togglestudiomode",
+			"UUID": "uk.1a3.multiobs.togglestudiomode",
 			"Icon": "assets/actions/togglestudiomode/icon",
 			"Name": "Studio Mode",
 			"Tooltip": "Enable/disable studio mode",
@@ -387,7 +387,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.triggerstudiomodetransition",
+			"UUID": "uk.1a3.multiobs.triggerstudiomodetransition",
 			"Icon": "assets/actions/triggerstudiomodetransition/icon",
 			"Name": "Studio Mode Transition",
 			"Tooltip": "Trigger studio mode transition",
@@ -402,7 +402,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.scenepreviewdial",
+			"UUID": "uk.1a3.multiobs.scenepreviewdial",
 			"Icon": "assets/actions/scenepreviewdial/icon",
 			"Name": "Scene Preview/Program",
 			"Tooltip": "Browse scenes with a Stream Deck + dial, push or tap the screen to switch Preview or Program (configurable) to the selected scene, or hold to cancel",
@@ -423,7 +423,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.sceneitemtransformdial",
+			"UUID": "uk.1a3.multiobs.sceneitemtransformdial",
 			"Icon": "assets/actions/sceneitemtransformdial/icon",
 			"Name": "Source Transform",
 			"Tooltip": "Adjust a scene item's position, scale, rotation or crop with a Stream Deck + dial",
@@ -444,7 +444,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.screenshot",
+			"UUID": "uk.1a3.multiobs.screenshot",
 			"Icon": "assets/actions/screenshot/icon",
 			"Name": "Screenshot",
 			"Tooltip": "Take screenshot of output or specific scene/source",
@@ -455,7 +455,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.triggerhotkey",
+			"UUID": "uk.1a3.multiobs.triggerhotkey",
 			"Icon": "assets/actions/triggerhotkey/icon",
 			"Name": "Hotkey Sequence",
 			"Tooltip": "Trigger action associated with a hotkey sequence",
@@ -466,7 +466,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.refreshbrowsersource",
+			"UUID": "uk.1a3.multiobs.refreshbrowsersource",
 			"Icon": "assets/actions/refreshbrowsersource/icon",
 			"Name": "Refresh Browser Source",
 			"Tooltip": "Refresh cache of a browser source page",
@@ -477,7 +477,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.refreshcapturedevice",
+			"UUID": "uk.1a3.multiobs.refreshcapturedevice",
 			"Icon": "assets/actions/refreshcapturedevice/icon",
 			"Name": "Refresh Capture Device",
 			"Tooltip": "Disable & re-enable a video capture device",
@@ -488,7 +488,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.stats",
+			"UUID": "uk.1a3.multiobs.stats",
 			"Icon": "assets/actions/stats/icon",
 			"Name": "Stats",
 			"Tooltip": "Get general/stream/record stats",
@@ -500,7 +500,7 @@
 			"SupportedInMultiActions": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.connectionstatus",
+			"UUID": "uk.1a3.multiobs.connectionstatus",
 			"Icon": "assets/actions/connectionstatus/icon",
 			"Name": "Connection Status",
 			"Tooltip": "Show whether the targeted OBS instance(s) are connected via a dedicated icon",
@@ -517,7 +517,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.reconnect",
+			"UUID": "uk.1a3.multiobs.reconnect",
 			"Icon": "assets/actions/reconnect/icon",
 			"Name": "Reconnect",
 			"Tooltip": "Force a reconnection attempt to the targeted OBS instance(s)",
@@ -528,7 +528,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.streamstatus",
+			"UUID": "uk.1a3.multiobs.streamstatus",
 			"Icon": "assets/actions/streamstatus/icon",
 			"Name": "Stream Status",
 			"Tooltip": "Show whether the targeted OBS instance(s) are currently live via a dedicated icon",
@@ -549,7 +549,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingeststatus",
+			"UUID": "uk.1a3.multiobs.irltkingeststatus",
 			"Icon": "assets/actions/irltkingeststatus/icon",
 			"Name": "IRLToolkit Ingest Status",
 			"Tooltip": "Show the live status of an IRLToolkit ingest player, and reload it on press (Cloud OBS only)",
@@ -574,7 +574,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestvolume",
+			"UUID": "uk.1a3.multiobs.irltkingestvolume",
 			"Icon": "assets/actions/irltkingestvolume/icon",
 			"Name": "IRLToolkit Ingest Volume",
 			"Tooltip": "Adjust an IRLToolkit ingest's volume with a Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list (Cloud OBS only)",
@@ -595,7 +595,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestscene",
+			"UUID": "uk.1a3.multiobs.irltkingestscene",
 			"Icon": "assets/actions/irltkingestscene/icon",
 			"Name": "IRLToolkit Ingest Scene",
 			"Tooltip": "Set current scene based on an IRLToolkit ingest, targeting either a specific ingest or a dynamic position in the sorted ingest list, mapped to a scene per server (Cloud OBS only)",
@@ -610,7 +610,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestfilter",
+			"UUID": "uk.1a3.multiobs.irltkingestfilter",
 			"Icon": "assets/actions/irltkingestfilter/icon",
 			"Name": "IRLToolkit Ingest Filter",
 			"Tooltip": "Enable/disable a filter on an IRLToolkit ingest player, targeting either a specific ingest or a dynamic position in the sorted ingest list (Cloud OBS only)",
@@ -627,7 +627,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestfilterdial",
+			"UUID": "uk.1a3.multiobs.irltkingestfilterdial",
 			"Icon": "assets/actions/irltkingestfilterdial/icon",
 			"Name": "IRLToolkit Ingest Filter Dial",
 			"Tooltip": "Browse every filter of an IRLToolkit ingest player with a Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list, and push or tap the screen to enable/disable the selected one (Cloud OBS only)",
@@ -648,7 +648,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestdial",
+			"UUID": "uk.1a3.multiobs.irltkingestdial",
 			"Icon": "assets/actions/irltkingestdial/icon",
 			"Name": "IRLToolkit Ingest Dial",
 			"Tooltip": "Volume and filters of an IRLToolkit ingest on one Stream Deck + dial, targeting either a specific ingest or a dynamic position in the sorted ingest list. Hold the dial to switch between volume and filters; it starts on volume every time it appears (Cloud OBS only)",
@@ -669,7 +669,7 @@
 			}
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestpageprev",
+			"UUID": "uk.1a3.multiobs.irltkingestpageprev",
 			"Icon": "assets/actions/irltkingestpageprev/icon",
 			"Name": "Ingest Page Previous",
 			"Tooltip": "Step the shared IRLToolkit ingest page back one page, for use with Ingest Status/Volume actions set to Dynamic Position while viewed via an Open Ingest Profile button (Cloud OBS only)",
@@ -687,7 +687,7 @@
             "VisibleInActionsList": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestpagenext",
+			"UUID": "uk.1a3.multiobs.irltkingestpagenext",
 			"Icon": "assets/actions/irltkingestpagenext/icon",
 			"Name": "Ingest Page Next",
 			"Tooltip": "Step the shared IRLToolkit ingest page forward one page, for use with Ingest Status/Volume actions set to Dynamic Position while viewed via an Open Ingest Profile button (Cloud OBS only)",
@@ -705,7 +705,7 @@
             "VisibleInActionsList": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestpagerefresh",
+			"UUID": "uk.1a3.multiobs.irltkingestpagerefresh",
 			"Icon": "assets/actions/irltkingestpagerefresh/icon",
 			"Name": "Ingest Page Refresh",
 			"Tooltip": "Re-sort the shared IRLToolkit ingest page, dropping offline ingests. Ingests otherwise keep their position until the page is refreshed or reopened (Cloud OBS only)",
@@ -717,7 +717,7 @@
 			"DisableAutomaticStates": true
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingestpagenumber",
+			"UUID": "uk.1a3.multiobs.irltkingestpagenumber",
 			"Icon": "assets/actions/irltkingestpagenumber/icon",
 			"Name": "Ingest Page Number",
 			"Tooltip": "Show the shared IRLToolkit ingest page as \"current/total\" (Cloud OBS only)",
@@ -730,7 +730,7 @@
             "VisibleInActionsList": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.irltkingeststudiotarget",
+			"UUID": "uk.1a3.multiobs.irltkingeststudiotarget",
 			"Icon": "assets/actions/irltkingeststudiotarget/icon",
 			"Name": "Ingest Studio Target",
 			"Tooltip": "Make every Ingest Scene button switch the Program or Preview scene (press to toggle), overriding their own Studio Mode Scene Target while viewed via an Open Ingest Profile button. Long press to go back to each button's own setting (Cloud OBS only)",
@@ -748,7 +748,7 @@
             "VisibleInActionsList": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.openingestprofile",
+			"UUID": "uk.1a3.multiobs.openingestprofile",
 			"Icon": "assets/actions/openingestprofile/icon",
 			"Name": "Open Ingest Profile",
 			"Tooltip": "Switch to the bundled \"IRLToolkit Ingests (Auto)\" profile, and set which server (and whether offline ingests are included) its IRLTK ingest actions should show - overriding those buttons' own settings while that profile is open. Pair with Previous Profile on the destination profile",
@@ -760,7 +760,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.previousprofile",
+			"UUID": "uk.1a3.multiobs.previousprofile",
 			"Icon": "assets/actions/previousprofile/icon",
 			"Name": "Previous Profile",
 			"Tooltip": "Return to the previous Stream Deck profile (e.g. one opened via Open Ingest Profile). No configuration needed",
@@ -772,7 +772,7 @@
             "VisibleInActionsList": false
 		},
 		{
-			"UUID": "dev.theca11.multiobs.rawrequest",
+			"UUID": "uk.1a3.multiobs.rawrequest",
 			"Icon": "assets/actions/rawrequest/icon",
 			"Name": "Raw WS Request",
 			"Tooltip": "[Advanced] Send a raw WS request",
@@ -783,7 +783,7 @@
 			]
 		},
 		{
-			"UUID": "dev.theca11.multiobs.rawbatchrequest",
+			"UUID": "uk.1a3.multiobs.rawbatchrequest",
 			"Icon": "assets/actions/rawbatchrequest/icon",
 			"Name": "Raw WS Batch Request",
 			"Tooltip": "[Advanced] Send raw WS batch request",
