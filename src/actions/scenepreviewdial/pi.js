@@ -45,23 +45,15 @@ function setRowMove(row, anchor) {
 	row.querySelector('button.revert').style.visibility = moved ? 'visible' : 'hidden';
 }
 
-/** Re-anchors every moved row to the row now right above it, then un-marks moved rows that are back where OBS would put them anyway */
+/**
+ * Re-anchors every moved row to the row now right above it - a moved row stays moved (pinned to its anchor) even if it's back
+ * where OBS would put it, until it's reverted
+ */
 function syncMovesToRows(container) {
 	const rows = getRows(container);
 	rows.forEach((row, idx) => {
 		if (row.dataset.moved === 'true') setRowMove(row, idx ? rows[idx - 1].dataset.scene : DIAL_ORDER_TOP);
 	});
-
-	// The OBS order isn't known while offline
-	const { sceneNames, isLive } = listStates.get(container);
-	if (!isLive) return;
-	const shownOrder = rows.map((row) => row.dataset.scene).join('\n');
-	for (const row of rows) {
-		if (row.dataset.moved !== 'true') continue;
-		const moves = getListMoves(container);
-		moves.delete(row.dataset.scene);
-		if (orderDialScenes(sceneNames, moves).join('\n') === shownOrder) setRowMove(row, undefined);
-	}
 }
 
 /** Puts the rows in the order the given moves give, keeping any unsaved values in them */
