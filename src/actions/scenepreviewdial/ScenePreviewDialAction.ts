@@ -1,5 +1,5 @@
 import { sockets } from '../../plugin/sockets';
-import { isDialSeparatorScene } from '../../shared/constants';
+import { getDialSceneMoves, isDialSeparatorScene, orderDialScenes } from '../../shared/constants';
 import { AbstractStatefulAction } from '../BaseWsAction';
 import { StateEnum } from '../StateEnum';
 import { globalSettings, resolveServers } from '../globalSettings';
@@ -201,13 +201,10 @@ export class ScenePreviewDialAction extends AbstractStatefulAction<ActionSetting
 		return socketSettings?.studioTarget === 'program' ? this._currentProgramSceneName[socketIdx] : this._currentPreviewSceneName[socketIdx];
 	}
 
-	/** Scenes in the custom order first, then any not in it (e.g. newly added) in their given order, minus excluded and separator ones - keep in sync with pi.js orderSceneNames */
+	/** Scenes in OBS order with manually moved ones placed after their saved anchor, minus excluded and separator ones - same ordering as the PI list */
 	private _orderScenes(sceneNames: string[], socketSettings: SocketSettings<ActionSettings> | null): string[] {
 		sceneNames = sceneNames.filter(sceneName => !isDialSeparatorScene(sceneName));
-		const sceneOrderSetting = socketSettings?.sceneOrder;
-		const sceneOrder = (Array.isArray(sceneOrderSetting) ? sceneOrderSetting : sceneOrderSetting ? [sceneOrderSetting] : [])
-		.filter(sceneName => sceneNames.includes(sceneName));
-		return [...sceneOrder, ...sceneNames.filter(sceneName => !sceneOrder.includes(sceneName))]
+		return orderDialScenes(sceneNames, getDialSceneMoves(socketSettings, sceneNames))
 		.filter(sceneName => socketSettings?.[`exclude__${sceneName}`] !== 'true');
 	}
 
