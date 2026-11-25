@@ -61,8 +61,12 @@ function commonSubsequence(a, b) {
 			i++;
 			j++;
 		}
-		else if (lengths[i + 1][j] >= lengths[i][j + 1]) i++;
-		else j++;
+		else if (lengths[i + 1][j] >= lengths[i][j + 1]) {
+			i++;
+		}
+		else {
+			j++;
+		}
 	}
 	return common;
 }
