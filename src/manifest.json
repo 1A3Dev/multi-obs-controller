@@ -714,7 +714,8 @@
 					"Image": "assets/actions/irltkingestpagerefresh/key_on"
 				}
 			],
-			"DisableAutomaticStates": true
+			"DisableAutomaticStates": true,
+            "VisibleInActionsList": false
 		},
 		{
 			"UUID": "uk.1a3.multiobs.irltkingestpagenumber",
