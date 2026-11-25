@@ -1,4 +1,5 @@
 export const fields = `
+<div class="sdpi-heading" data-i18n>Ingest</div>
 <div type="radio" class="sdpi-item" title="${$PI.localize('How to pick the target ingest: a fixed one, or by its position on the ingest page (opened via an Open Ingest Profile button)')}">
 	<div class="sdpi-item-label" data-i18n>Target Mode</div>
 	<div class="sdpi-item-value">
@@ -17,6 +18,7 @@ export const fields = `
 	<div class="sdpi-item-label" data-i18n>Ingest Position</div>
 	<input class="sdpi-item-value" type="number" name="ingestIndex" min="1" step="1" placeholder="1">
 </div>
+<div class="sdpi-heading" title="${$PI.localize('The mode the dial starts in. Hold the dial down to switch to filters')}" data-i18n>Volume Mode</div>
 <div class="sdpi-item">
 	<div class="sdpi-item-label" data-i18n>Step (dB)</div>
 	<input class="sdpi-item-value" type="number" name="stepDb" min="0.1" max="26" step="0.1" placeholder="1">
@@ -25,6 +27,7 @@ export const fields = `
 	<div class="sdpi-item-label" data-i18n>Max (dB)</div>
 	<input class="sdpi-item-value" type="number" name="maxDb" min="0" max="26" step="0.1" placeholder="0">
 </div>
+<div class="sdpi-heading" title="${$PI.localize('Hold the dial down to switch between volume and filters')}" data-i18n>Filters Mode</div>
 <div type="textarea" class="sdpi-item" title="${$PI.localize('Filter names to skip on the dial, one per line (not case-sensitive). Applies to whichever ingest the dial lands on')}">
 	<div class="sdpi-item-label" data-i18n>Excluded Filters</div>
 	<div class="sdpi-item-value textarea">
